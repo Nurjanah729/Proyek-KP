@@ -1,7 +1,8 @@
-pandas
-streamlit
-base64
-matplotlib
-mysql-connector-python
-joblib
-numpy
+pandas==2.2.3
+scikit-learn==1.6.1
+streamlit==1.52.1
+beautifulsoup4==4.13.4
+matplotlib==3.10.8
+mysql-connector-python==9.5.0
+numpy==2.2.4
+joblib==1.5.2
