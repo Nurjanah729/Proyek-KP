@@ -11,22 +11,6 @@ from analisis_nilai_page import analisis_nilai_page
 from mahasiswa_dashboard import mahasiswa_dashboard 
 from db import get_db 
 
-st.title("Test Koneksi Database")
-
-db = st.secrets["mysql"]
-
-try:
-    conn = mysql.connector.connect(
-        host=db["host"],
-        port=db["port"],
-        user=db["user"],
-        password=db["password"],
-        database=db["database"],
-        ssl_disabled=True
-    )
-    st.success("✅ Database berhasil terhubung")
-except Exception as e:
-    st.error(f"❌ Database gagal: {e}")
 
 # ====================== # PAGE CONFIG # ====================== 
 st.set_page_config( 
@@ -421,5 +405,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
