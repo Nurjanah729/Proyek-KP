@@ -3,6 +3,7 @@ from pathlib import Path
 import base64 
 import matplotlib.pyplot as plt 
 import streamlit as st 
+import mysql.connector
 
 from mahasiswa_page import mahasiswa_page 
 from input_nilai_page import input_nilai_page 
@@ -420,4 +421,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
