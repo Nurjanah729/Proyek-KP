@@ -13,5 +13,18 @@ def get_db():
         use_pure=True,
         connection_timeout=5
     )
+    
+     ssl_ca_content = mysql_secrets.get("ssl_ca")
+            
+            if ssl_ca_content:
+                with tempfile.NamedTemporaryFile(delete=False) as ca_file:
+                    ca_file.write(ssl_ca_content.encode("utf-8"))
+                    ca_path = ca_file.name
+            
+                connection_config["ssl_ca"] = ca_path
+                connection_config["ssl_verify_cert"] = True
+            else:
+                st.error("❌ SSL CA tidak ditemukan di secrets")
+                return None
 
     
