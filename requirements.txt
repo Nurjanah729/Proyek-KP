@@ -1,0 +1,7 @@
+pandas
+streamlit
+base64
+matplotlib
+mysql-connector-python
+joblib
+numpy
