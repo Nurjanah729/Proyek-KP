@@ -48,21 +48,19 @@ def input_nilai_page():
     # ======================
     # INPUT NILAI MODUL (SLIDER)
     # ======================
-    st.markdown("### 📊 Nilai Modul")
+    st.markdown("## 📊 Nilai Modul")
 
-    scores = {}
-    cols = st.columns(2)
+    for modul in range(1, 11):
+        st.markdown(f"**Modul {modul}**")
+        nilai = st.slider(
+            label=f"Nilai Modul {modul}",
+            min_value=0,
+            max_value=100,
+            value=75,
+            key=f"modul_{modul}",
+            label_visibility="collapsed"
+        )
 
-    for i in range(1, 11):
-        with cols[(i - 1) % 2]:
-            scores[i] = st.slider(
-                f"Modul {i}",
-                min_value=0,
-                max_value=100,
-                value=75,      # nilai default
-                step=1,
-                key=f"modul_{i}"
-            )
 
     # ======================
     # SIMPAN NILAI
@@ -113,4 +111,5 @@ def input_nilai_page():
     if not df.empty:
         st.markdown("### 📋 Nilai Tersimpan")
         st.table(df)
+
 
