@@ -1,5 +1,6 @@
 import mysql.connector
 import streamlit as st
+import tempfile
 
 def get_db():
     return mysql.connector.connect(
@@ -13,9 +14,7 @@ def get_db():
         use_pure=True,
         connection_timeout=5
     )
-    
-     ssl_ca_content = mysql_secrets.get("ssl_ca")
-            
+    ssl_ca_content = mysql_secrets.get("ssl_ca")
             if ssl_ca_content:
                 with tempfile.NamedTemporaryFile(delete=False) as ca_file:
                     ca_file.write(ssl_ca_content.encode("utf-8"))
@@ -28,3 +27,4 @@ def get_db():
                 return None
 
     
+
