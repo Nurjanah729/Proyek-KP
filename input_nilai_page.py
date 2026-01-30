@@ -49,7 +49,7 @@ def input_nilai_page():
     # INPUT NILAI MODUL (SLIDER)
     # ======================
     st.markdown("## 📊 Nilai Modul")
-
+    scores = {}
     for modul in range(1, 11):
         st.markdown(f"**Modul {modul}**")
         nilai = st.slider(
@@ -111,5 +111,6 @@ def input_nilai_page():
     if not df.empty:
         st.markdown("### 📋 Nilai Tersimpan")
         st.table(df)
+
 
 
