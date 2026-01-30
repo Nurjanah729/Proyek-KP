@@ -46,49 +46,54 @@ def input_nilai_page():
     st.markdown("---")
 
     # ======================
-    # INPUT NILAI MODUL (SLIDER)
+    # INPUT NILAI MODUL
     # ======================
     st.markdown("## 📊 Nilai Modul")
 
     if "scores" not in st.session_state:
-    st.session_state.scores = {}
+        st.session_state.scores = {}
 
     for modul in range(1, 11):
-    st.markdown(f"**Modul {modul}**")
+        st.markdown(f"**Modul {modul}**")
 
-    nilai = st.slider(
-        label=f"Nilai Modul {modul}",
-        min_value=0,
-        max_value=100,
-        value=st.session_state.scores.get(modul, 75),
-        key=f"modul_{modul}",
-        label_visibility="collapsed"
-    )
+        nilai = st.slider(
+            label=f"Nilai Modul {modul}",
+            min_value=0,
+            max_value=100,
+            value=st.session_state.scores.get(modul, 75),
+            key=f"modul_{modul}",
+            label_visibility="collapsed"
+        )
 
-    # SIMPAN KE SESSION STATE
-    st.session_state.scores[modul] = nilai
+        # SIMPAN KE SESSION STATE
+        st.session_state.scores[modul] = nilai
 
     # ======================
     # SIMPAN NILAI
     # ======================
     if st.button("💾 Simpan Nilai"):
-    cur.execute(
-        "DELETE FROM module_scores WHERE student_id = %s",
-        (student_id,)
-    )
+        # Hapus nilai lama
+        cur.execute(
+            "DELETE FROM module_scores WHERE student_id = %s",
+            (student_id,)
+        )
 
-    for module, score in st.session_state.scores.items():
-        cur.execute("""
-            INSERT INTO module_scores (student_id, module, score)
-            VALUES (%s, %s, %s)
-        """, (student_id, module, score))
+        # Insert nilai baru
+        for module, score in st.session_state.scores.items():
+            cur.execute("""
+                INSERT INTO module_scores (student_id, module, score)
+                VALUES (%s, %s, %s)
+            """, (student_id, module, score))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
-    st.success("✅ Nilai berhasil disimpan")
-    st.session_state.scores = {}  # reset kalau mau
-    st.rerun()
+        st.success("✅ Nilai berhasil disimpan")
+
+        # Reset scores supaya bersih
+        st.session_state.scores = {}
+
+        st.rerun()
 
     st.markdown("---")
 
@@ -103,21 +108,12 @@ def input_nilai_page():
         ORDER BY CAST(module AS UNSIGNED) ASC
     """, conn, params=(student_id,))
 
-    # PAKSA MODULE JADI ANGKA
-    df["Modul"] = df["Modul"].astype(int)
-
-    # URUTKAN BERDASARKAN ANGKA
-    df = df.sort_values(by="Modul")
-
-    # RESET INDEX SUPAYA MULAI DARI 1
-    df.index = range(1, len(df) + 1)
-
-    conn.close()
-
     if not df.empty:
+        df["Modul"] = df["Modul"].astype(int)
+        df = df.sort_values(by="Modul")
+        df.index = range(1, len(df) + 1)
+
         st.markdown("### 📋 Nilai Tersimpan")
         st.table(df)
 
-
-
-
+    conn.close()
