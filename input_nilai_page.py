@@ -49,40 +49,46 @@ def input_nilai_page():
     # INPUT NILAI MODUL (SLIDER)
     # ======================
     st.markdown("## 📊 Nilai Modul")
-    scores = {}
-    for modul in range(1, 11):
-        st.markdown(f"**Modul {modul}**")
-        nilai = st.slider(
-            label=f"Nilai Modul {modul}",
-            min_value=0,
-            max_value=100,
-            value=75,
-            key=f"modul_{modul}",
-            label_visibility="collapsed"
-        )
 
+    if "scores" not in st.session_state:
+    st.session_state.scores = {}
+
+    for modul in range(1, 11):
+    st.markdown(f"**Modul {modul}**")
+
+    nilai = st.slider(
+        label=f"Nilai Modul {modul}",
+        min_value=0,
+        max_value=100,
+        value=st.session_state.scores.get(modul, 75),
+        key=f"modul_{modul}",
+        label_visibility="collapsed"
+    )
+
+    # SIMPAN KE SESSION STATE
+    st.session_state.scores[modul] = nilai
 
     # ======================
     # SIMPAN NILAI
     # ======================
     if st.button("💾 Simpan Nilai"):
-        # Hapus nilai lama (jika re-input)
-        cur.execute(
-            "DELETE FROM module_scores WHERE student_id = %s",
-            (student_id,)
-        )
+    cur.execute(
+        "DELETE FROM module_scores WHERE student_id = %s",
+        (student_id,)
+    )
 
-        for module, score in scores.items():
-            cur.execute("""
-                INSERT INTO module_scores (student_id, module, score)
-                VALUES (%s, %s, %s)
-            """, (student_id, module, score))
+    for module, score in st.session_state.scores.items():
+        cur.execute("""
+            INSERT INTO module_scores (student_id, module, score)
+            VALUES (%s, %s, %s)
+        """, (student_id, module, score))
 
-        conn.commit()
-        conn.close()
+    conn.commit()
+    conn.close()
 
-        st.success("✅ Nilai berhasil disimpan")
-        st.rerun()
+    st.success("✅ Nilai berhasil disimpan")
+    st.session_state.scores = {}  # reset kalau mau
+    st.rerun()
 
     st.markdown("---")
 
@@ -111,6 +117,7 @@ def input_nilai_page():
     if not df.empty:
         st.markdown("### 📋 Nilai Tersimpan")
         st.table(df)
+
 
 
 
