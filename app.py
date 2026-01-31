@@ -207,27 +207,26 @@ def display_logo():
 def login_page():
     col1, col2, col3 = st.columns([1,3,1])
     with col2:
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        display_logo()
-
-        st.markdown("""
-        <h3 style="text-align:center">Student Learning Assistant</h3>
-        <p style="text-align:center;color:#2563eb">VINIX7 AURUM</p>
-        """, unsafe_allow_html=True)
-
+       st.markdown('<div class="login-label">Login sebagai</div>', unsafe_allow_html=True)
         role = st.selectbox(
-            "Login sebagai",
-            ["Administrator", "Mahasiswa"]
+            "",
+            ["Administrator", "Mahasiswa"],
+            label_visibility="collapsed"
         )
-
+        
+        st.markdown('<div class="login-label">Username</div>', unsafe_allow_html=True)
         username = st.text_input(
-            "Username",
-            placeholder="contoh: vinix_awan"
+            "",
+            placeholder="contoh: vinix_awan",
+            label_visibility="collapsed"
         )
-
+        
+        st.markdown('<div class="login-label">Password</div>', unsafe_allow_html=True)
         password = st.text_input(
-            "Password",
-            type="password"
+            "",
+            type="password",
+            placeholder="Masukkan password",
+            label_visibility="collapsed"
         )
 
         if st.button("LOGIN"):
@@ -405,6 +404,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
