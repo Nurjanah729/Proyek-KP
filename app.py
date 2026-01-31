@@ -208,7 +208,7 @@ def login_page():
     col1, col2, col3 = st.columns([1,3,1])
     with col2:
        st.markdown('<div class="login-label">Login sebagai</div>', unsafe_allow_html=True)
-        role = st.selectbox(
+       role = st.selectbox(
             "",
             ["Administrator", "Mahasiswa"],
             label_visibility="collapsed"
@@ -404,6 +404,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
