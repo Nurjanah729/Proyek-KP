@@ -18,14 +18,26 @@ def mahasiswa_page():
     # ======================
     st.markdown("### ➕ Tambah Mahasiswa & Akun Login")
 
-    nama = st.text_input("Nama Mahasiswa")
-
-    divisi = st.selectbox(
-        "Divisi",
-        ["Web Developer", "Data Science", "AI Engineer"]
+    st.markdown('<div class="login-label">Nama Mahasiswa</div>', unsafe_allow_html=True)
+    nama = st.text_input(
+        "",
+        placeholder="contoh: Siti Nurjanah",
+        label_visibility="collapsed"
     )
-
-    universitas = st.text_input("Universitas")
+    
+    st.markdown('<div class="login-label">Divisi</div>', unsafe_allow_html=True)
+    divisi = st.selectbox(
+        "",
+        ["Web Developer", "Data Science", "AI Engineer"],
+        label_visibility="collapsed"
+    )
+    
+    st.markdown('<div class="login-label">Universitas</div>', unsafe_allow_html=True)
+    universitas = st.text_input(
+        "",
+        placeholder="contoh: Universitas Padjadjaran",
+        label_visibility="collapsed"
+    )
 
     # ======================
     # GENERATE USERNAME & PASSWORD
@@ -112,3 +124,4 @@ def mahasiswa_page():
         df[["No", "Username", "Nama", "Divisi", "Universitas"]],
         use_container_width=True
     )
+
