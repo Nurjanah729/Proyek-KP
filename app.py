@@ -35,6 +35,19 @@ header, footer {visibility:hidden;}
     color: #1F2937;
 }
 
+/* ================= ALERT FIX ================= */
+div[data-testid="stAlert"][data-baseweb="notification"] {
+    background-color: #FEF3C7 !important;  /* kuning jelas */
+    color: #92400E !important;             /* teks coklat gelap */
+    border-left: 6px solid #F59E0B !important;
+}
+
+div[data-testid="stAlert"] p {
+    color: #92400E !important;
+    font-weight: 600;
+}
+
+
 /* ================= SIDEBAR ================= */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0B3C8C, #1E40AF);
@@ -412,6 +425,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
