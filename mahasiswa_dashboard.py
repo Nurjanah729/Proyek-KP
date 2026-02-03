@@ -167,3 +167,52 @@ def mahasiswa_dashboard(student_id):
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df, use_container_width=True)
+
+# ======================
+# PENGATURAN AKUN MAHASISWA
+# ======================
+st.markdown("## ⚙️ Pengaturan Akun")
+
+with st.form("form_pengaturan_akun"):
+    username_baru = st.text_input("Username Baru")
+    password_lama = st.text_input("Password Lama", type="password")
+    password_baru = st.text_input("Password Baru", type="password")
+    simpan = st.form_submit_button("💾 Simpan Perubahan")
+
+if simpan:
+    if not username_baru or not password_lama or not password_baru:
+        st.error("Semua field wajib diisi")
+    else:
+        conn = get_db()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT password FROM students WHERE id = %s",
+            (student_id,)
+        )
+        data = cur.fetchone()
+
+        if not data:
+            st.error("Akun tidak ditemukan")
+        elif data[0] != password_lama:
+            st.error("Password lama salah")
+        else:
+            cur.execute(
+                "SELECT id FROM students WHERE username = %s AND id != %s",
+                (username_baru, student_id)
+            )
+            if cur.fetchone():
+                st.error("Username sudah digunakan")
+            else:
+                cur.execute("""
+                    UPDATE students
+                    SET username = %s, password = %s
+                    WHERE id = %s
+                """, (username_baru, password_baru, student_id))
+
+                conn.commit()
+                st.success("Username dan password berhasil diperbarui")
+
+        conn.close()
+
+
