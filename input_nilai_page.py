@@ -18,11 +18,7 @@ def input_nilai_page():
         return
 
     student_map = {f"{s[1]} | {s[2]}": s[0] for s in students}
-    selected_student = st.selectbox(
-        "Cari Mahasiswa",
-        options=list(student_map.keys()),
-        index=None
-    )
+    selected_student = st.selectbox("Cari Mahasiswa", list(student_map.keys()), index=None)
 
     if not selected_student:
         conn.close()
@@ -31,7 +27,7 @@ def input_nilai_page():
     student_id = student_map[selected_student]
 
     # =============================
-    # 2. Ambil nilai existing
+    # 2. Nilai existing
     # =============================
     cur.execute(
         "SELECT module, score FROM module_scores WHERE student_id = %s",
@@ -43,7 +39,7 @@ def input_nilai_page():
     st.write(f"📍 Mengisi nilai untuk: **{selected_student.split('|')[0]}**")
 
     # =============================
-    # 3. Data awal tabel
+    # 3. Data tabel
     # =============================
     df_input = pd.DataFrame({
         "Modul": [f"Modul {i}" for i in range(1, 11)],
@@ -51,7 +47,7 @@ def input_nilai_page():
     })
 
     # =============================
-    # 4. FORM INPUT NILAI
+    # 4. FORM
     # =============================
     with st.form("form_input_nilai"):
         edited_df = st.data_editor(
@@ -63,8 +59,8 @@ def input_nilai_page():
                 ),
                 "Nilai": st.column_config.SelectboxColumn(
                     "Nilai (55–100 / Other)",
-                    options=list(range(55, 101)) + ["Other"],
-                    help="Pilih nilai atau pilih Other lalu double-click dan ketik angka manual",
+                    options=list(range(0, 101)) + ["Other"],  # 🔥 INI KUNCI
+                    help="Pilih nilai atau pilih Other lalu ketik manual",
                     required=True,
                     width="large"
                 )
@@ -72,8 +68,6 @@ def input_nilai_page():
             hide_index=True,
             use_container_width=True
         )
-
-        st.markdown("<br>", unsafe_allow_html=True)
 
         if st.form_submit_button("💾 Simpan Semua Nilai", use_container_width=True):
             try:
@@ -84,20 +78,16 @@ def input_nilai_page():
 
                 for _, row in edited_df.iterrows():
                     mod_num = int(row["Modul"].split(" ")[1])
-                    raw_nilai = row["Nilai"]
+                    raw = row["Nilai"]
 
-                    # Wajib diganti jika masih Other
-                    if raw_nilai == "Other":
+                    if raw == "Other":
                         raise ValueError(
-                            "Nilai 'Other' harus diganti dengan angka (double-click lalu ketik)"
+                            "Pilih Other lalu ketik angka manual"
                         )
 
-                    # Terima input manual walau tidak ada di options
-                    try:
-                        nilai = int(raw_nilai)
-                    except:
-                        raise ValueError("Nilai harus berupa angka")
+                    nilai = int(raw)
 
+                    # 🔒 VALIDASI SEBENARNYA
                     if nilai < 55 or nilai > 100:
                         raise ValueError("Nilai harus antara 55 – 100")
 
