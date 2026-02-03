@@ -31,10 +31,9 @@ def mahasiswa_dashboard(student_id):
     # ======================
     # DATABASE
     # ======================
-    conn = get_db()  # ambil koneksi database
-    pengaturan_page(student_id, conn)
-    conn.close()
-
+    conn = get_db()
+    cur = conn.cursor()
+    
     cur.execute("""
         SELECT name, division, university
         FROM students
@@ -44,6 +43,7 @@ def mahasiswa_dashboard(student_id):
 
     if not mahasiswa:
         st.error("Data mahasiswa tidak ditemukan")
+        cur.close()
         conn.close()
         return
 
@@ -232,6 +232,7 @@ def mahasiswa_dashboard(student_id):
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df, use_container_width=True, hide_index=True)
+
 
 
 
