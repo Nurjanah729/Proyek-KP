@@ -63,14 +63,10 @@ def input_nilai_page():
                     disabled=True
                 ),
                 "Nilai": st.column_config.SelectboxColumn(
-                    "Pilih Nilai",
-                    help="Nilai hanya boleh 50–60, 70–80, atau 90–100",
+                    "Nilai (55–100)",
+                    help="Pilih dari list atau double-click untuk input manual",
                     width="large",
-                    options=(
-                        list(range(50, 61)) +
-                        list(range(70, 81)) +
-                        list(range(90, 101))
-                    ),
+                    options=list(range(55, 101)),  # 55 sampai 100
                     required=True
                 )
             },
@@ -90,6 +86,10 @@ def input_nilai_page():
                 for _, row in edited_df.iterrows():
                     mod_num = int(row["Modul"].split(" ")[1])
                     nilai = int(row["Nilai"])
+
+                    # Validasi backend (AMAN)
+                    if nilai < 55 or nilai > 100:
+                        raise ValueError("Nilai harus antara 55 - 100")
 
                     cur.execute(
                         """
