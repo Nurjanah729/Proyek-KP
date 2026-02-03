@@ -9,16 +9,18 @@ import random
 @st.cache_data
 def get_list_universitas():
     try:
-        # Membaca file yang kamu upload tadi
+        # 1. Membaca file sesuai nama yang kamu upload
         df = pd.read_csv("universitas_indonesia.csv")
+        
+        # 2. Ambil data dari kolom 'nama_universitas' (sesuai isi filemu)
         list_univ = sorted(df['nama_universitas'].dropna().unique().tolist())
-        # Tambahkan opsi manual di akhir daftar
+        
+        # 3. Tambahkan opsi manual
         list_univ.append("➕ Input Manual (Tidak ada di daftar)")
         return list_univ
-    except:
-        # Jika file CSV belum terupload/error, berikan fallback ini
-        return ["Universitas Indonesia", "Universitas Padjadjaran", "➕ Input Manual (Tidak ada di daftar)"]
-
+    except Exception as e:
+        # Jika muncul ini di web, berarti file CSV belum terbaca oleh GitHub/Streamlit
+        return [f"Error baca CSV: {e}", "➕ Input Manual (Tidak ada di daftar)"]
 def mahasiswa_page():
     st.markdown("## 👨‍🎓 Kelola Mahasiswa")
     st.markdown("Manajemen data mahasiswa magang & studi independen")
@@ -169,3 +171,4 @@ def mahasiswa_page():
         df[["No", "Username", "Nama", "Divisi", "Universitas"]],
         use_container_width=True
     )
+
