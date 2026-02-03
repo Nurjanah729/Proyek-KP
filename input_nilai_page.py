@@ -3,13 +3,12 @@ import pandas as pd
 from db import get_db
 
 def input_nilai_page():
-    st.markdown("### ⚡ Input Nilai Cepat (Mode Excel)")
-    st.info("Pilih mahasiswa, isi nilai pada tabel di bawah, lalu klik Simpan.")
-
+    st.markdown("### ⚡ Input Nilai Cepat (Klik & Pilih)")
+    
     conn = get_db()
     cur = conn.cursor()
 
-    # 1. PILIH MAHASISWA
+    # 1. PILIH MAHASISWA (Tetap pakai search agar cepat)
     cur.execute("SELECT id, name, division, university FROM students ORDER BY name ASC")
     students = cur.fetchall()
 
@@ -26,55 +25,49 @@ def input_nilai_page():
 
     student_id = student_map[selected_student]
 
-    # 2. SIAPKAN DATA NILAI (Ambil dari DB atau buat baru)
+    # Ambil nilai lama untuk default
     cur.execute("SELECT module, score FROM module_scores WHERE student_id = %s", (student_id,))
-    existing_data = dict(cur.fetchall())
+    existing_scores = dict(cur.fetchall())
 
-    # Buat DataFrame untuk tabel edit
-    # Modul 1 sampai 10
-    df_input = pd.DataFrame({
-        "Modul": [f"Modul {i}" for i in range(1, 11)],
-        "Nilai": [existing_data.get(i, 0) for i in range(1, 11)]
-    })
+    st.markdown("---")
+    st.write(f"📍 Mengisi nilai untuk: **{selected_student.split('|')[0]}**")
 
-    # 3. TAMPILKAN EDITOR TABEL (INI YANG BIKIN GA CAPE)
-    st.markdown(f"**Edit Nilai untuk: {selected_student.split(' | ')[0]}**")
-    
-    edited_df = st.data_editor(
-        df_input,
-        column_config={
-            "Modul": st.column_config.TextColumn("Modul", disabled=True), # Nama modul ga bisa diubah
-            "Nilai": st.column_config.NumberColumn(
-                "Nilai (0-100)",
-                min_value=0,
-                max_value=100,
-                step=1,
-                format="%d"
-            ),
-        },
-        hide_index=True,
-        use_container_width=True,
-        key="editor_nilai"
-    )
+    # 2. RENTANG NILAI (Kelipatan 5 atau 10 biasanya paling sering dipakai)
+    # Kita buat pilihan agar admin tinggal klik tanpa ngetik
+    opsi_nilai = [0, 50, 60, 65, 70, 75, 80, 85, 90, 95, 100]
 
-    # 4. TOMBOL SIMPAN SEKALIGUS
-    if st.button("🚀 Simpan Semua Nilai"):
+    final_scores = {}
+
+    # Gunakan Container agar rapi
+    with st.form("bulk_input"):
+        for i in range(1, 11):
+            default_val = existing_scores.get(i, 80) # Default ke 80 jika belum ada
+            
+            # Menggunakan radio horizontal agar admin tinggal KLIK
+            final_scores[i] = st.radio(
+                f"Modul {i}",
+                options=opsi_nilai,
+                index=opsi_nilai.index(default_val) if default_val in opsi_nilai else 5,
+                horizontal=True,
+                key=f"mod_{i}"
+            )
+            st.markdown("<hr style='margin:10px 0; opacity:0.2'>", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        submitted = st.form_submit_button("💾 SIMPAN SEMUA NILAI SEKALIGUS", use_container_width=True)
+
+    # 3. LOGIKA SIMPAN
+    if submitted:
         try:
             cur.execute("DELETE FROM module_scores WHERE student_id = %s", (student_id,))
-            
-            # Ambil data dari tabel yang sudah diedit user
-            for _, row in edited_df.iterrows():
-                mod_num = int(row['Modul'].split(' ')[1])
-                score_val = int(row['Nilai'])
-                
+            for mod_num, score_val in final_scores.items():
                 cur.execute("""
                     INSERT INTO module_scores (student_id, module, score)
                     VALUES (%s, %s, %s)
                 """, (student_id, mod_num, score_val))
-
             conn.commit()
-            st.success("✅ Semua nilai berhasil diperbarui!")
-            st.balloons() # Efek biar admin senang
+            st.success("✅ Nilai berhasil disimpan!")
+            st.balloons()
         except Exception as e:
             conn.rollback()
             st.error(f"Gagal: {e}")
