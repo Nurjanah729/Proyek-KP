@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from db import get_db
+from pengaturan import pengaturan_page  # import fungsi pengaturan
 
 
 def mahasiswa_dashboard(student_id):
@@ -13,9 +14,17 @@ def mahasiswa_dashboard(student_id):
         st.markdown("## 🎓 Mahasiswa")
         st.markdown("Dashboard Akademik")
         st.markdown("---")
+
+        # Menu navigasi
+        page = st.radio("Menu", ["Dashboard", "Pengaturan"])
+        
         if st.button("🔓 Logout"):
             st.session_state.clear()
             st.rerun()
+
+    if page == "Pengaturan":
+        pengaturan_page(student_id)
+        return  # berhenti di sini, jangan render dashboard
 
     # ======================
     # DATABASE
@@ -167,3 +176,4 @@ def mahasiswa_dashboard(student_id):
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df, use_container_width=True)
+
