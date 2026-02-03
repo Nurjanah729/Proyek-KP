@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 from db import get_db
 from pengaturan import pengaturan_page  # import fungsi pengaturan
 
-conn = get_db() 
-pengaturan_page(st.session_state.student_id, conn) 
 
 def mahasiswa_dashboard(student_id):
 
@@ -31,11 +29,9 @@ def mahasiswa_dashboard(student_id):
     # ======================
     # DATABASE
     # ======================
-    conn = get_db()
-    cur = conn.cursor()
-
+    conn = get_db()  # ambil koneksi database
     pengaturan_page(student_id, conn)
-
+    conn.close()
 
     cur.execute("""
         SELECT name, division, university
@@ -234,6 +230,7 @@ def mahasiswa_dashboard(student_id):
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df, use_container_width=True, hide_index=True)
+
 
 
 
