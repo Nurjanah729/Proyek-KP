@@ -38,7 +38,7 @@ def pengaturan_page(student_id):
             cur = conn.cursor()
 
             cur.execute(
-                "SELECT password FROM students WHERE id = %s",
+                "SELECT password FROM users WHERE student_id  = %s",
                 (student_id,)
             )
             data = cur.fetchone()
@@ -47,7 +47,7 @@ def pengaturan_page(student_id):
                 st.error("Password lama salah")
             else:
                 cur.execute(
-                    "UPDATE students SET password = %s WHERE id = %s",
+                    "UPDATE users SET password = %s WHERE student_id = %s",
                     (password_baru, student_id)
                 )
                 conn.commit()
