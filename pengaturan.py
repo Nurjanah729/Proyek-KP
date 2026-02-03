@@ -2,6 +2,24 @@ import streamlit as st
 from db import get_db
 
 def pengaturan_page(student_id):
+    st.markdown("""
+        <style>
+        /* Mengatur warna label di atas box agar hitam tegas */
+        .stTextInput label {
+            color: #262730 !important; 
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+            margin-bottom: 8px !important;
+            display: block !important;
+        }
+        /* Opsional: Membuat box input lebih terlihat */
+        .stTextInput div[data-baseweb="input"] {
+            border: 1px solid #D1D5DB !important;
+            border-radius: 8px !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    # -----------------------------
 
     st.markdown("## ⚙️ Ubah Password")
 
