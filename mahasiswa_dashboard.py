@@ -45,6 +45,46 @@ def mahasiswa_dashboard(student_id):
         return
 
     nama, divisi, universitas = mahasiswa
+    # --- INI ADALAH STEP 1 ---
+    # Kita membuat daftar judul modul untuk tiap divisi
+    kamus_modul = {
+        "Data Science": {
+            1: "Introduction to Data Science",
+            2: "Python for Data Analysis",
+            3: "Exploratory Data Analysis",
+            4: "Statistics for DS",
+            5: "Machine Learning Basics",
+            6: "Supervised Learning",
+            7: "Unsupervised Learning",
+            8: "Deep Learning Intro",
+            9: "Big Data Fundamentals",
+            10: "Model Deployment & MLOps"
+        },
+        "Web Developer": {
+            1: "HTML & CSS Dasar",
+            2: "Javascript ES6",
+            3: "Responsive Design",
+            4: "Git & Version Control",
+            5: "React.js Framework",
+            6: "Node.js Backend",
+            7: "Database SQL",
+            8: "REST API",
+            9: "Web Security",
+            10: "Cloud Hosting & Testing"
+        },
+        "AI Engineer": {
+            1: "Linear Algebra for AI",
+            2: "Advanced Python AI",
+            3: "Search Algorithms",
+            4: "Neural Networks",
+            5: "Computer Vision",
+            6: "Natural Language Processing",
+            7: "Reinforcement Learning",
+            8: "AI Model Deployment",
+            9: "Generative AI Intro",
+            10: "AI Ethics & Governance"
+        }
+    }
 
     st.markdown("""
     <style>
@@ -91,6 +131,19 @@ def mahasiswa_dashboard(student_id):
 
     df = pd.DataFrame(data_nilai, columns=["Modul", "Nilai"])
     df["Modul"] = df["Modul"].astype(int)
+    # --- LOGIKA PENAMBAHAN KETERANGAN ---
+    # Mengambil daftar judul berdasarkan divisi user
+    judul_sesuai_divisi = kamus_modul.get(divisi, {})
+    
+    # Menambahkan kolom keterangan dengan memetakan nomor modul ke judul
+    df["Keterangan"] = df["Modul"].map(judul_sesuai_divisi)
+    
+    # Jika nomor modul tidak ada di kamus, isi dengan teks default
+    df["Keterangan"] = df["Keterangan"].fillna("Materi Pelatihan Tambahan")
+    
+    # Atur urutan kolom agar lebih rapi (Modul - Keterangan - Nilai)
+    df = df[["Modul", "Keterangan", "Nilai"]]
+    # ------------------------------------
 
     # ======================
     # RINGKASAN
@@ -175,5 +228,6 @@ def mahasiswa_dashboard(student_id):
     # TABEL (PUTIH)
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
 
