@@ -67,3 +67,44 @@ def input_nilai_page():
                     help="Nilai hanya boleh 50–60, 70–80, atau 90–100",
                     width="large",
                     options=(
+                        list(range(50, 61)) +
+                        list(range(70, 81)) +
+                        list(range(90, 101))
+                    ),
+                    required=True
+                )
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        if st.form_submit_button("💾 Simpan Semua Nilai", use_container_width=True):
+            try:
+                cur.execute(
+                    "DELETE FROM module_scores WHERE student_id = %s",
+                    (student_id,)
+                )
+
+                for _, row in edited_df.iterrows():
+                    mod_num = int(row["Modul"].split(" ")[1])
+                    nilai = int(row["Nilai"])
+
+                    cur.execute(
+                        """
+                        INSERT INTO module_scores (student_id, module, score)
+                        VALUES (%s, %s, %s)
+                        """,
+                        (student_id, mod_num, nilai)
+                    )
+
+                conn.commit()
+                st.success("✅ Nilai berhasil disimpan")
+                st.rerun()
+
+            except Exception as e:
+                conn.rollback()
+                st.error(f"❌ Gagal menyimpan: {e}")
+
+    conn.close()
