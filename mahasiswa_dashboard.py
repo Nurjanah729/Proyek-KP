@@ -23,7 +23,9 @@ def mahasiswa_dashboard(student_id):
             st.rerun()
 
     if page == "Pengaturan":
-        pengaturan_page(student_id)
+        conn = get_db()  # ambil koneksi
+        pengaturan_page(student_id, conn)  # kirim 2 argumen
+        conn.close()
         return  # berhenti di sini, jangan render dashboard
 
     # ======================
@@ -230,6 +232,7 @@ def mahasiswa_dashboard(student_id):
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df, use_container_width=True, hide_index=True)
+
 
 
 
