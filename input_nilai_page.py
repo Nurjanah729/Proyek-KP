@@ -3,7 +3,7 @@ import pandas as pd
 from db import get_db
 
 def input_nilai_page():
-    st.markdown("### 📝 Input Nilai (Pilih atau Ketik Langsung)")
+    st.markdown("### 📝 Input Nilai (Pilihan Cepat & Ketik Manual)")
     
     conn = get_db()
     cur = conn.cursor()
@@ -29,9 +29,15 @@ def input_nilai_page():
 
     st.markdown("---")
     
-    # 2. DAFTAR OPSI (Agar admin tidak scroll jauh)
-    # Ini hanya sebagai bantuan, admin tetap bisa mengetik angka lain
-    opsi_angka = ["0", "50", "60", "70", "75", "80", "85", "90", "95", "100"]
+    # 2. DAFTAR OPSI YANG DIKELOMPOKKAN (Agar tidak capek scroll)
+    # Admin bisa pilih angka ini, atau hapus dan KETIK SENDIRI angka spesifiknya
+    opsi_nilai = [
+        "100", "95", "90",  # Kelompok 90-100
+        "85", "80",         # Kelompok 80-85
+        "75", "70",         # Kelompok 70-75
+        "65", "60",         # Kelompok 60-65
+        "50", "0"           # Di bawah 60
+    ]
 
     with st.form("form_input_nilai"):
         st.write(f"📍 Mengisi nilai untuk: **{selected_student.split('|')[0]}**")
@@ -41,21 +47,22 @@ def input_nilai_page():
 
         for i in range(1, 11):
             target_col = col1 if i <= 5 else col2
-            current_val = str(existing_scores.get(i, 80)) # Default 80
+            
+            # Ambil nilai lama dari database
+            current_val = str(existing_scores.get(i, 80)) 
             
             with target_col:
-                # MENGGUNAKAN SELECTBOX YANG BISA DIKETIK
-                # Admin bisa pilih 80, atau hapus dan ketik 87
+                # SELECTBOX yang mengizinkan pengetikan manual
+                # Jika admin mau nilai 87, tinggal hapus angka di box ini lalu ketik 87
                 nilai_input = st.selectbox(
                     f"Modul {i}",
-                    options=opsi_angka,
-                    index=opsi_angka.index(current_val) if current_val in opsi_angka else None,
+                    options=opsi_nilai,
+                    index=opsi_nilai.index(current_val) if current_val in opsi_nilai else None,
                     key=f"mod_{i}",
-                    help="Pilih angka atau ketik angka bebas"
+                    help="Pilih dari daftar atau ketik angka bebas (misal: 87)"
                 )
                 
-                # Logika: Jika admin tidak pilih dari daftar tapi ngetik sendiri
-                # Streamlit selectbox secara default akan menangkap teks yang diketik
+                # Jika admin tidak pilih tapi ketik manual, Streamlit tetap menangkap teksnya
                 scores_to_save[i] = nilai_input
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -66,11 +73,11 @@ def input_nilai_page():
         try:
             cur.execute("DELETE FROM module_scores WHERE student_id = %s", (student_id,))
             for mod_num, score_val in scores_to_save.items():
-                # Validasi agar inputan selalu angka
+                # Konversi ke angka, jika bukan angka set ke 0
                 try:
                     score_final = int(score_val)
                 except:
-                    score_final = 0 # Jika inputan aneh, set 0
+                    score_final = 0
                 
                 cur.execute("""
                     INSERT INTO module_scores (student_id, module, score)
