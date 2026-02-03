@@ -13,7 +13,6 @@ def input_nilai_page():
     # =============================
     cur.execute("SELECT id, name, division, university FROM students ORDER BY name ASC")
     students = cur.fetchall()
-
     if not students:
         st.warning("Belum ada data mahasiswa.")
         return
@@ -64,8 +63,8 @@ def input_nilai_page():
                 ),
                 "Nilai": st.column_config.SelectboxColumn(
                     "Nilai (55–100 / Other)",
-                    help="Pilih nilai atau pilih Other lalu double-click untuk input manual",
                     options=list(range(55, 101)) + ["Other"],
+                    help="Pilih nilai atau pilih Other lalu double-click dan ketik angka manual",
                     required=True,
                     width="large"
                 )
@@ -85,15 +84,19 @@ def input_nilai_page():
 
                 for _, row in edited_df.iterrows():
                     mod_num = int(row["Modul"].split(" ")[1])
-                    nilai = row["Nilai"]
+                    raw_nilai = row["Nilai"]
 
-                    # Jika Other, admin HARUS mengetik angka manual
-                    if nilai == "Other":
+                    # Wajib diganti jika masih Other
+                    if raw_nilai == "Other":
                         raise ValueError(
                             "Nilai 'Other' harus diganti dengan angka (double-click lalu ketik)"
                         )
 
-                    nilai = int(nilai)
+                    # Terima input manual walau tidak ada di options
+                    try:
+                        nilai = int(raw_nilai)
+                    except:
+                        raise ValueError("Nilai harus berupa angka")
 
                     if nilai < 55 or nilai > 100:
                         raise ValueError("Nilai harus antara 55 – 100")
