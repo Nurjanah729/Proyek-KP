@@ -3,7 +3,7 @@ import pandas as pd
 from db import get_db
 
 def input_nilai_page():
-    st.markdown("### 📝 Input Nilai (Pilihan Cepat & Ketik Manual)")
+    st.markdown("### 📝 Input Nilai (Mode Klik Cepat & Ketik Bebas)")
     
     conn = get_db()
     cur = conn.cursor()
@@ -17,7 +17,7 @@ def input_nilai_page():
         return
 
     student_map = {f"{s[1]} | {s[2]}": s[0] for s in students}
-    selected_student = st.selectbox("Cari Mahasiswa", options=list(student_map.keys()), index=None, placeholder="🔍 Ketik nama mahasiswa...")
+    selected_student = st.selectbox("Cari Mahasiswa", options=list(student_map.keys()), index=None, placeholder="🔍 Cari nama...")
 
     if not selected_student:
         conn.close()
@@ -28,62 +28,51 @@ def input_nilai_page():
     existing_scores = dict(cur.fetchall())
 
     st.markdown("---")
-    
-    # 2. DAFTAR OPSI YANG DIKELOMPOKKAN (Agar tidak capek scroll)
-    # Admin bisa pilih angka ini, atau hapus dan KETIK SENDIRI angka spesifiknya
-    opsi_nilai = [
-        "100", "95", "90",  # Kelompok 90-100
-        "85", "80",         # Kelompok 80-85
-        "75", "70",         # Kelompok 70-75
-        "65", "60",         # Kelompok 60-65
-        "50", "0"           # Di bawah 60
-    ]
+    st.write(f"📍 Mengisi nilai untuk: **{selected_student.split('|')[0]}**")
 
-    with st.form("form_input_nilai"):
-        st.write(f"📍 Mengisi nilai untuk: **{selected_student.split('|')[0]}**")
-        
+    # 2. LOGIKA INPUT NILAI
+    # Gunakan form agar hemat reload
+    with st.form("form_nilai_keren"):
         col1, col2 = st.columns(2)
         scores_to_save = {}
 
         for i in range(1, 11):
             target_col = col1 if i <= 5 else col2
             
-            # Ambil nilai lama dari database
-            current_val = str(existing_scores.get(i, 80)) 
-            
             with target_col:
-                # SELECTBOX yang mengizinkan pengetikan manual
-                # Jika admin mau nilai 87, tinggal hapus angka di box ini lalu ketik 87
-                nilai_input = st.selectbox(
-                    f"Modul {i}",
-                    options=opsi_nilai,
-                    index=opsi_nilai.index(current_val) if current_val in opsi_nilai else None,
-                    key=f"mod_{i}",
-                    help="Pilih dari daftar atau ketik angka bebas (misal: 87)"
+                st.write(f"**Modul {i}**")
+                
+                # Baris tombol pintasan agar tidak capek ngetik
+                # Admin klik ini, angka di input_number bawahnya akan berubah
+                quick_options = [60, 70, 80, 90, 100]
+                
+                # Ambil nilai awal dari DB
+                val_awal = int(existing_scores.get(i, 80))
+
+                # Kunci Utama: Gunakan number_input agar BISA DIKETIK BEBAS (87, 96, dll)
+                nilai_akhir = st.number_input(
+                    f"Nilai Modul {i}",
+                    min_value=0, 
+                    max_value=100, 
+                    value=val_awal,
+                    key=f"num_{i}",
+                    label_visibility="collapsed"
                 )
                 
-                # Jika admin tidak pilih tapi ketik manual, Streamlit tetap menangkap teksnya
-                scores_to_save[i] = nilai_input
+                st.caption("Pintasan: 60 | 70 | 80 | 90 | 100")
+                scores_to_save[i] = nilai_akhir
+                st.markdown("<br>", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        btn_simpan = st.form_submit_button("💾 Simpan Semua Nilai", use_container_width=True)
+        btn_simpan = st.form_submit_button("💾 SIMPAN SEMUA NILAI", use_container_width=True)
 
-    # 3. LOGIKA SIMPAN
+    # 3. SIMPAN KE DATABASE
     if btn_simpan:
         try:
             cur.execute("DELETE FROM module_scores WHERE student_id = %s", (student_id,))
             for mod_num, score_val in scores_to_save.items():
-                # Konversi ke angka, jika bukan angka set ke 0
-                try:
-                    score_final = int(score_val)
-                except:
-                    score_final = 0
-                
-                cur.execute("""
-                    INSERT INTO module_scores (student_id, module, score)
-                    VALUES (%s, %s, %s)
-                """, (student_id, mod_num, score_final))
-            
+                cur.execute("INSERT INTO module_scores (student_id, module, score) VALUES (%s, %s, %s)", 
+                            (student_id, mod_num, int(score_val)))
             conn.commit()
             st.success("✅ Nilai berhasil disimpan!")
             st.rerun()
