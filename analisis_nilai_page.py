@@ -87,17 +87,14 @@ def analisis_nilai_page():
             return
 
         # ======================
-        # TAMPILKAN HASIL
+        # TAMPILKAN HASIL (TANPA TINGKAT KEPERCAYAAN)
         # ======================
         st.success(f"✅ Hasil Analisis: {result}")
-        st.write(f"📊 Tingkat kepercayaan: {confidence}")
         st.write(f"📈 Rata-rata Nilai: {avg_score}")
 
         if weak_modules:
             st.warning(f"⚠ Modul lemah: {', '.join(map(str, weak_modules))}")
         else:
             st.info("🎉 Tidak ada modul lemah")
-
-    conn.close()
 
     conn.close()
