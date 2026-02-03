@@ -34,6 +34,9 @@ def mahasiswa_dashboard(student_id):
     conn = get_db()
     cur = conn.cursor()
 
+    pengaturan_page(student_id, conn)
+
+
     cur.execute("""
         SELECT name, division, university
         FROM students
@@ -231,6 +234,7 @@ def mahasiswa_dashboard(student_id):
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df, use_container_width=True, hide_index=True)
+
 
 
 
