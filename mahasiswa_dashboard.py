@@ -12,6 +12,13 @@ def mahasiswa_dashboard(student_id):
 
     # SIDEBAR
     with st.sidebar:
+        st.markdown("## 🎓 Mahasiswa")
+
+        if st.button("🏠 Dashboard"):
+            st.session_state.page = "dashboard"
+            st.rerun()
+            
+    with st.sidebar:
         if st.button("⚙️ Pengaturan Akun"):
             st.session_state.page = "pengaturan"
             st.rerun()
@@ -25,16 +32,15 @@ def mahasiswa_dashboard(student_id):
     
     with st.form("form_pengaturan_akun"):
         st.markdown("### Username Baru")
-        username_baru = st.text_input("", placeholder="Masukkan username baru")
+        username_baru = st.text_input("")
     
         st.markdown("### Password Lama")
-        password_lama = st.text_input("", type="password", placeholder="Masukkan password lama")
+        password_lama = st.text_input("", type="password")
     
         st.markdown("### Password Baru")
-        password_baru = st.text_input("", type="password", placeholder="Masukkan password baru")
+        password_baru = st.text_input("", type="password")
     
         simpan = st.form_submit_button("💾 Simpan Perubahan")
-
     
         if simpan:
             if not username_baru or not password_lama or not password_baru:
@@ -69,8 +75,6 @@ def mahasiswa_dashboard(student_id):
             st.rerun()
         return
     
-
-
             
 
     # ======================
@@ -227,6 +231,7 @@ def mahasiswa_dashboard(student_id):
 # ======================
 # PENGATURAN AKUN MAHASISWA
 # ======================
+
 
 
 
