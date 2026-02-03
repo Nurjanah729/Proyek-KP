@@ -6,17 +6,12 @@ from db import get_db
 
 def mahasiswa_dashboard(student_id):
 
-    # ======================
-    # SIDEBAR
-    # ======================
+    # INISIALISASI WAJIB
     if "page" not in st.session_state:
         st.session_state.page = "dashboard"
-        
-    with st.sidebar:
-        st.markdown("## 🎓 Mahasiswa")
-        st.markdown("Dashboard Akademik")
-        st.markdown("---")
 
+    # SIDEBAR
+    with st.sidebar:
         if st.button("⚙️ Pengaturan Akun"):
             st.session_state.page = "pengaturan"
             st.rerun()
@@ -24,6 +19,50 @@ def mahasiswa_dashboard(student_id):
         if st.button("🔓 Logout"):
             st.session_state.clear()
             st.rerun()
+    if st.session_state.page == "pengaturan":
+        st.markdown("## ⚙️ Pengaturan Akun")
+        st.caption("Ubah username dan password")
+    
+        with st.form("form_pengaturan_akun"):
+            username_baru = st.text_input("Username Baru")
+            password_lama = st.text_input("Password Lama", type="password")
+            password_baru = st.text_input("Password Baru", type="password")
+            simpan = st.form_submit_button("💾 Simpan Perubahan")
+    
+        if simpan:
+            if not username_baru or not password_lama or not password_baru:
+                st.error("Semua field wajib diisi")
+            else:
+                conn = get_db()
+                cur = conn.cursor()
+    
+                cur.execute(
+                    "SELECT password FROM students WHERE id = %s",
+                    (student_id,)
+                )
+                data = cur.fetchone()
+    
+                if not data:
+                    st.error("Akun tidak ditemukan")
+                elif data[0] != password_lama:
+                    st.error("Password lama salah")
+                else:
+                    cur.execute("""
+                        UPDATE students
+                        SET username = %s, password = %s
+                        WHERE id = %s
+                    """, (username_baru, password_baru, student_id))
+                    conn.commit()
+                    st.success("Berhasil diperbarui")
+    
+                conn.close()
+    
+        if st.button("⬅️ Kembali ke Dashboard"):
+            st.session_state.page = "dashboard"
+            st.rerun()
+    
+
+
             
 
     # ======================
@@ -180,45 +219,4 @@ def mahasiswa_dashboard(student_id):
 # ======================
 # PENGATURAN AKUN MAHASISWA
 # ======================
-if st.session_state.page == "pengaturan":
-    st.markdown("## ⚙️ Pengaturan Akun")
-    st.caption("Ubah username dan password")
-
-    with st.form("form_pengaturan_akun"):
-        username_baru = st.text_input("Username Baru")
-        password_lama = st.text_input("Password Lama", type="password")
-        password_baru = st.text_input("Password Baru", type="password")
-        simpan = st.form_submit_button("💾 Simpan Perubahan")
-
-    if simpan:
-        if not username_baru or not password_lama or not password_baru:
-            st.error("Semua field wajib diisi")
-        else:
-            conn = get_db()
-            cur = conn.cursor()
-
-            cur.execute(
-                "SELECT password FROM students WHERE id = %s",
-                (student_id,)
-            )
-            data = cur.fetchone()
-
-            if not data:
-                st.error("Akun tidak ditemukan")
-            elif data[0] != password_lama:
-                st.error("Password lama salah")
-            else:
-                cur.execute("""
-                    UPDATE students
-                    SET username = %s, password = %s
-                    WHERE id = %s
-                """, (username_baru, password_baru, student_id))
-                conn.commit()
-                st.success("Berhasil diperbarui")
-
-            conn.close()
-
-    if st.button("⬅️ Kembali ke Dashboard"):
-        st.session_state.page = "dashboard"
-        st.rerun()
 
