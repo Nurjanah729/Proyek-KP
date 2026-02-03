@@ -32,7 +32,7 @@ def input_nilai_page():
     student_id = student_map[selected_student]
 
     # =============================
-    # 2. Ambil nilai yang sudah ada
+    # 2. Ambil nilai existing
     # =============================
     cur.execute(
         "SELECT module, score FROM module_scores WHERE student_id = %s",
@@ -44,26 +44,15 @@ def input_nilai_page():
     st.write(f"📍 Mengisi nilai untuk: **{selected_student.split('|')[0]}**")
 
     # =============================
-    # 3. Data awal
+    # 3. Data awal tabel
     # =============================
-    nilai_opsi = list(range(55, 101)) + ["Other"]
-
     df_input = pd.DataFrame({
         "Modul": [f"Modul {i}" for i in range(1, 11)],
-        "Nilai": [
-            existing_scores.get(i) if existing_scores.get(i) in range(55, 101)
-            else "Other"
-            for i in range(1, 11)
-        ],
-        "Input Manual": [
-            existing_scores.get(i) if existing_scores.get(i) not in range(55, 101)
-            else None
-            for i in range(1, 11)
-        ]
+        "Nilai": [existing_scores.get(i, 70) for i in range(1, 11)]
     })
 
     # =============================
-    # 4. FORM INPUT
+    # 4. FORM INPUT NILAI
     # =============================
     with st.form("form_input_nilai"):
         edited_df = st.data_editor(
@@ -74,17 +63,11 @@ def input_nilai_page():
                     disabled=True
                 ),
                 "Nilai": st.column_config.SelectboxColumn(
-                    "Pilih Nilai (55–100)",
-                    options=nilai_opsi,
+                    "Nilai (55–100 / Other)",
+                    help="Pilih nilai atau pilih Other lalu double-click untuk input manual",
+                    options=list(range(55, 101)) + ["Other"],
                     required=True,
-                    width="medium"
-                ),
-                "Input Manual": st.column_config.NumberColumn(
-                    "Nilai Manual",
-                    help="Isi jika memilih 'Other'",
-                    min_value=55,
-                    max_value=100,
-                    step=1
+                    width="large"
                 )
             },
             hide_index=True,
@@ -102,16 +85,18 @@ def input_nilai_page():
 
                 for _, row in edited_df.iterrows():
                     mod_num = int(row["Modul"].split(" ")[1])
+                    nilai = row["Nilai"]
 
-                    if row["Nilai"] == "Other":
-                        if pd.isna(row["Input Manual"]):
-                            raise ValueError("Nilai manual wajib diisi jika memilih Other")
-                        nilai = int(row["Input Manual"])
-                    else:
-                        nilai = int(row["Nilai"])
+                    # Jika Other, admin HARUS mengetik angka manual
+                    if nilai == "Other":
+                        raise ValueError(
+                            "Nilai 'Other' harus diganti dengan angka (double-click lalu ketik)"
+                        )
+
+                    nilai = int(nilai)
 
                     if nilai < 55 or nilai > 100:
-                        raise ValueError("Nilai harus antara 55–100")
+                        raise ValueError("Nilai harus antara 55 – 100")
 
                     cur.execute(
                         """
