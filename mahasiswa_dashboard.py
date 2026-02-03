@@ -60,6 +60,7 @@ def mahasiswa_dashboard(student_id):
         if st.button("⬅️ Kembali ke Dashboard"):
             st.session_state.page = "dashboard"
             st.rerun()
+        return
     
 
 
@@ -219,4 +220,5 @@ def mahasiswa_dashboard(student_id):
 # ======================
 # PENGATURAN AKUN MAHASISWA
 # ======================
+
 
