@@ -15,7 +15,7 @@ def mahasiswa_dashboard(student_id):
         st.markdown("---")
 
         if st.button("⚙️ Pengaturan Akun"):
-        st.session_state.page = "pengaturan"
+            st.session_state.page = "pengaturan"
 
         if st.button("🔓 Logout"):
             st.session_state.clear()
@@ -220,3 +220,4 @@ def mahasiswa_dashboard(student_id):
     if st.button("⬅️ Kembali ke Dashboard"):
         st.session_state.page = "dashboard"
         st.rerun()
+
