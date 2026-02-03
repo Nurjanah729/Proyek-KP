@@ -9,6 +9,9 @@ def mahasiswa_dashboard(student_id):
     # ======================
     # SIDEBAR
     # ======================
+    if "page" not in st.session_state:
+        st.session_state.page = "dashboard"
+        
     with st.sidebar:
         st.markdown("## 🎓 Mahasiswa")
         st.markdown("Dashboard Akademik")
@@ -16,14 +19,12 @@ def mahasiswa_dashboard(student_id):
 
         if st.button("⚙️ Pengaturan Akun"):
             st.session_state.page = "pengaturan"
+            st.rerun()
 
         if st.button("🔓 Logout"):
             st.session_state.clear()
             st.rerun()
             
-        if "page" not in st.session_state:
-            st.session_state.page = "dashboard"
-
 
     # ======================
     # DATABASE
@@ -220,3 +221,4 @@ if st.session_state.page == "pengaturan":
     if st.button("⬅️ Kembali ke Dashboard"):
         st.session_state.page = "dashboard"
         st.rerun()
+
