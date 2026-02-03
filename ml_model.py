@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import joblib
 
+
 # =========================
 # LOAD MODEL
 # =========================
@@ -20,31 +21,48 @@ def run_analysis(scores_df: pd.DataFrame):
 
     Output:
         result (str)
+        confidence (float)
         weak_modules (list)
         avg_score (float)
     """
 
-    # pastikan data numerik & urut
+    # pastikan numerik & urut
     scores_df["Modul"] = pd.to_numeric(scores_df["Modul"])
     scores_df["Nilai"] = pd.to_numeric(scores_df["Nilai"])
     scores_df = scores_df.sort_values("Modul")
 
-    # ambil nilai saja (sesuai fitur model)
-    X = scores_df["Nilai"].values.reshape(1, -1)
+    # =========================
+    # SIAPKAN FITUR
+    # =========================
+    X = scores_df["Nilai"].values
+
+    # jumlah fitur yang DIHARAPKAN model
+    expected_features = model.n_features_in_
+
+    # kalau nilai kurang → padding 0
+    if len(X) < expected_features:
+        X = np.pad(X, (0, expected_features - len(X)))
+
+    # kalau nilai lebih → potong
+    elif len(X) > expected_features:
+        X = X[:expected_features]
+
+    X = X.reshape(1, -1)
 
     # =========================
-    # PREDIKSI MODEL
+    # PREDIKSI
     # =========================
     prediction = model.predict(X)[0]
 
-    # =========================
-    # RATA-RATA NILAI
-    # =========================
-    avg_score = round(scores_df["Nilai"].mean(), 2)
+    if hasattr(model, "predict_proba"):
+        confidence = model.predict_proba(X).max()
+    else:
+        confidence = 0.8
 
     # =========================
-    # MODUL LEMAH (<70)
+    # ANALISIS TAMBAHAN
     # =========================
+    avg_score = scores_df["Nilai"].mean()
     weak_modules = scores_df[scores_df["Nilai"] < 70]["Modul"].tolist()
 
-    return prediction, weak_modules, avg_score
+    return prediction, round(confidence, 2), weak_modules, round(avg_score, 2)
