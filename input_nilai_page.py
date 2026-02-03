@@ -18,7 +18,11 @@ def input_nilai_page():
         return
 
     student_map = {f"{s[1]} | {s[2]}": s[0] for s in students}
-    selected_student = st.selectbox("Cari Mahasiswa", list(student_map.keys()), index=None)
+    selected_student = st.selectbox(
+        "Cari Mahasiswa",
+        options=list(student_map.keys()),
+        index=None
+    )
 
     if not selected_student:
         conn.close()
@@ -27,7 +31,7 @@ def input_nilai_page():
     student_id = student_map[selected_student]
 
     # =============================
-    # 2. Nilai existing
+    # 2. Ambil nilai existing
     # =============================
     cur.execute(
         "SELECT module, score FROM module_scores WHERE student_id = %s",
@@ -39,7 +43,7 @@ def input_nilai_page():
     st.write(f"📍 Mengisi nilai untuk: **{selected_student.split('|')[0]}**")
 
     # =============================
-    # 3. Data tabel
+    # 3. Data awal tabel
     # =============================
     df_input = pd.DataFrame({
         "Modul": [f"Modul {i}" for i in range(1, 11)],
@@ -47,7 +51,7 @@ def input_nilai_page():
     })
 
     # =============================
-    # 4. FORM
+    # 4. FORM INPUT NILAI
     # =============================
     with st.form("form_input_nilai"):
         edited_df = st.data_editor(
@@ -59,8 +63,8 @@ def input_nilai_page():
                 ),
                 "Nilai": st.column_config.SelectboxColumn(
                     "Nilai (55–100 / Other)",
-                    options=list(range(0, 101)) + ["Other"],  # 🔥 INI KUNCI
-                    help="Pilih nilai atau pilih Other lalu ketik manual",
+                    options=list(range(0, 101)) + ["Other"],
+                    help="Pilih nilai atau pilih Other lalu double-click untuk input manual",
                     required=True,
                     width="large"
                 )
@@ -78,18 +82,16 @@ def input_nilai_page():
 
                 for _, row in edited_df.iterrows():
                     mod_num = int(row["Modul"].split(" ")[1])
-                    raw = row["Nilai"]
+                    raw_nilai = row["Nilai"]
 
-                    if raw == "Other":
+                    # Jika masih Other, paksa admin mengetik angka
+                    if raw_nilai == "Other":
                         raise ValueError(
-                            "Pilih Other lalu ketik angka manual"
+                            "Pilih Other lalu ketik nilai manual (double-click sel)"
                         )
 
-                    nilai = int(raw)
-
-                    # 🔒 VALIDASI SEBENARNYA
-                    if nilai < 55 or nilai > 100:
-                        raise ValueError("Nilai harus antara 55 – 100")
+                    # Simpan APA ADANYA sebagai integer
+                    nilai = int(raw_nilai)
 
                     cur.execute(
                         """
