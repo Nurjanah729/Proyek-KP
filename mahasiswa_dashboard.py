@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from db import get_db
 from pengaturan import pengaturan_page  # import fungsi pengaturan
 
+conn = get_db() 
+pengaturan_page(st.session_state.student_id, conn) 
 
 def mahasiswa_dashboard(student_id):
 
@@ -229,5 +231,6 @@ def mahasiswa_dashboard(student_id):
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df, use_container_width=True, hide_index=True)
+
 
 
