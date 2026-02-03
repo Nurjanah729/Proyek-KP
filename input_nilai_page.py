@@ -3,7 +3,7 @@ import pandas as pd
 from db import get_db
 
 def input_nilai_page():
-    st.markdown("### 📝 Input Nilai Cepat (Mode Grouping)")
+    st.markdown("### 📝 Input Nilai Modul")
     
     conn = get_db()
     cur = conn.cursor()
@@ -28,55 +28,43 @@ def input_nilai_page():
 
     st.markdown("---")
     
-    # 2. DEFINISI RENTANG (Agar Admin Gak Capek Scroll)
-    # Kita sediakan angka utama saja sebagai "Shortcut"
-    opsi_nilai = [
-        "100", "95", "90", # Group 90-100
-        "85", "80",       # Group 80-85
-        "75", "70",       # Group 70-75
-        "65", "60",       # Group 60-65
-        "50", "0"
-    ]
+    # DAFTAR ANGKA UTAMA (Biar admin gak capek scroll)
+    opsi_utama = ["100", "95", "90", "85", "80", "75", "70", "65", "60", "50", "0"]
 
-    with st.form("form_nilai"):
+    with st.form("form_nilai_efisien"):
         st.write(f"📍 Mengisi nilai untuk: **{selected_student.split('|')[0]}**")
+        
         col1, col2 = st.columns(2)
         scores_to_save = {}
 
         for i in range(1, 11):
             target_col = col1 if i <= 5 else col2
-            current_val = str(existing_scores.get(i, 80))
-
+            
+            # Ambil nilai lama dari database
+            current_val = str(existing_scores.get(i, 80)) 
+            
             with target_col:
-                # TRICK: Gunakan st.selectbox tetapi tambahkan nilai manual ke daftar opsi secara dinamis
-                # Ini mencegah "No Results" karena nilai manual akan dianggap bagian dari daftar
-                temp_options = opsi_nilai.copy()
-                if current_val not in temp_options:
-                    temp_options.append(current_val)
-                    temp_options.sort(key=int, reverse=True)
+                # --- TRIK AGAR BISA KETIK BEBAS TANPA 'NO RESULTS' ---
+                # Kita buat daftar opsi yang isinya angka utama + angka yang sedang diketik
+                # Streamlit akan selalu menganggap angka tersebut ada di daftar
+                
+                opsi_tampilan = opsi_utama.copy()
+                if current_val not in opsi_tampilan:
+                    opsi_tampilan.append(current_val)
+                
+                # Urutkan angka dari besar ke kecil
+                opsi_tampilan = sorted(list(set(opsi_tampilan)), key=int, reverse=True)
 
-                # Gunakan st.text_input atau st.number_input yang diletakkan di bawah selectbox kecil
-                # Tujuannya agar admin bisa memilih CEPAT atau mengetik MANUAL
-                
-                st.markdown(f"**Modul {i}**")
-                pilihan = st.selectbox(
-                    f"Pilih Cepat Modul {i}",
-                    options=temp_options,
-                    index=temp_options.index(current_val),
-                    key=f"sel_{i}",
-                    label_visibility="collapsed"
+                nilai_input = st.selectbox(
+                    f"Modul {i}",
+                    options=opsi_tampilan,
+                    index=opsi_tampilan.index(current_val),
+                    key=f"mod_{i}",
+                    help="Pilih angka atau ketik angka bebas lalu tekan Enter"
                 )
-                
-                # Admin bisa tetap mengubah angka secara manual di sini jika butuh spesifik
-                final_val = st.text_input(
-                    f"Atau Ketik Manual Modul {i}", 
-                    value=pilihan, 
-                    key=f"txt_{i}",
-                    label_visibility="collapsed"
-                )
-                
-                scores_to_save[i] = final_val
+                scores_to_save[i] = nilai_input
 
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.form_submit_button("💾 Simpan Semua Nilai", use_container_width=True):
             try:
                 cur.execute("DELETE FROM module_scores WHERE student_id = %s", (student_id,))
@@ -84,8 +72,9 @@ def input_nilai_page():
                     cur.execute("INSERT INTO module_scores (student_id, module, score) VALUES (%s, %s, %s)", 
                                 (student_id, mod_num, int(score_val)))
                 conn.commit()
-                st.success("Berhasil disimpan!")
+                st.success("✅ Nilai berhasil disimpan!")
                 st.rerun()
-            except:
-                st.error("Pastikan input adalah angka!")
+            except Exception as e:
+                st.error(f"Gagal menyimpan. Pastikan input adalah angka. Error: {e}")
+    
     conn.close()
