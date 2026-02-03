@@ -1,40 +1,38 @@
 import streamlit as st
 from db import get_db
-import hashlib
 
+def pengaturan_page(student_id):
 
-def pengaturan_page():
-    st.markdown("## ⚙️ Pengaturan Akun")
-    st.markdown("### 🔐 Ubah Password")
+    st.markdown("## ⚙️ Ubah Password")
 
-    password_baru = st.text_input(
-        "Password Baru",
-        type="password"
-    )
+    with st.form("ubah_password"):
+        password_lama = st.text_input("Password Lama", type="password")
+        password_baru = st.text_input("Password Baru", type="password")
 
-    konfirmasi_password = st.text_input(
-        "Konfirmasi Password",
-        type="password"
-    )
+        submit = st.form_submit_button("Simpan")
 
-    if st.button("💾 Simpan Password"):
-        if not password_baru or not konfirmasi_password:
-            st.error("Password tidak boleh kosong")
-            return
+        if submit:
+            if not password_lama or not password_baru:
+                st.error("Semua field wajib diisi")
+                return
 
-        if password_baru != konfirmasi_password:
-            st.error("Password tidak sama")
-            return
+            conn = get_db()
+            cur = conn.cursor()
 
-        hashed_password = hashlib.sha256(password_baru.encode()).hexdigest()
+            cur.execute(
+                "SELECT password FROM students WHERE id = %s",
+                (student_id,)
+            )
+            data = cur.fetchone()
 
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE students SET password = %s WHERE id = %s",
-            (hashed_password, st.session_state.student_id)
-        )
-        conn.commit()
-        conn.close()
+            if not data or data[0] != password_lama:
+                st.error("Password lama salah")
+            else:
+                cur.execute(
+                    "UPDATE students SET password = %s WHERE id = %s",
+                    (password_baru, student_id)
+                )
+                conn.commit()
+                st.success("Password berhasil diubah")
 
-        st.success("✅ Password berhasil diubah")
+            conn.close()
