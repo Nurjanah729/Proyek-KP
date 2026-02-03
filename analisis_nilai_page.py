@@ -66,7 +66,8 @@ def analisis_nilai_page():
     # JALANKAN ANALISIS
     # ======================
     if st.button("🔍 Menjalankan Analisis"):
-        result, _, weak_modules, avg_score = run_analysis(df)
+        result, confidence, weak_modules, avg_score = run_analysis(df)
+
         #      ↑ confidence DIABAIKAN
 
         # SIMPAN HASIL
@@ -91,3 +92,4 @@ def analisis_nilai_page():
             st.info("🎉 Tidak ada modul lemah")
 
     conn.close()
+
