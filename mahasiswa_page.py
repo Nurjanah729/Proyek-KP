@@ -3,48 +3,56 @@ import pandas as pd
 from db import get_db
 
 # ==========================================
-# 1. UI ENGINE (HIGH CONTRAST & CLEAN)
+# 1. UI CUSTOMIZATION (PROFESSIONAL LIGHT)
 # ==========================================
 st.markdown("""
     <style>
-    /* 1. Paksa Latar Belakang Putih */
-    .stApp { background-color: #FFFFFF !important; }
-
-    /* 2. Paksa SEMUA teks (Tab, Label, Input) berwarna HITAM PEKAT */
-    * { color: #000000 !important; }
-    
-    /* 3. Perbaikan TAB agar terlihat jelas tanpa klik */
-    .stTabs [data-baseweb="tab-list"] button {
-        background-color: #F0F2F6 !important;
-        margin-right: 5px !important;
-        border-radius: 5px 5px 0 0 !important;
-    }
+    /* Paksa teks Tab tetap terlihat hitam pekat dan tebal */
     .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        color: #1A1A1A !important;
+        font-weight: 700 !important;
         font-size: 16px !important;
-        font-weight: 800 !important;
+    }
+    
+    /* Warna teks label di atas box input agar terlihat jelas */
+    div[data-testid="stWidgetLabel"] p {
+        color: #31333F !important;
+        font-weight: 500 !important;
     }
 
-    /* 4. Menghilangkan Teks Label di atas Box Input */
-    div[data-testid="stWidgetLabel"] { display: none !important; }
-
-    /* 5. Mempertegas Box Input (Border Abu-abu Gelap) */
+    /* Mempercantik box input */
     .stTextInput input, .stSelectbox [data-baseweb="select"] {
-        border: 2px solid #333333 !important; 
+        border: 1px solid #DDE1E6 !important;
         border-radius: 6px !important;
-        height: 45px !important;
     }
 
-    /* 6. Perbaikan Tombol (Biru Royal, Teks Putih) */
+    /* TOMBOL SIMPAN: Biru Royal Profesional */
     div.stButton > button {
         background-color: #0045AD !important;
-        color: #FFFFFF !important; /* Paksa teks tombol tetap putih */
+        color: white !important;
+        border-radius: 4px !important;
         border: none !important;
-        font-weight: 700 !important;
-        width: 100% !important;
-        height: 48px !important;
+        font-weight: 600 !important;
+        width: 180px !important;
+        height: 45px !important;
+    }
+    div.stButton > button:hover {
+        background-color: #003385 !important;
+        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
+
+@st.cache_data
+def get_list_universitas():
+    try:
+        # Mengambil data dari file csv yang diunggah
+        df = pd.read_csv("universitas_indonesia.csv")
+        list_univ = sorted(df['nama_universitas'].dropna().unique().tolist())
+        list_univ.append("➕ Input Manual")
+        return list_univ
+    except:
+        return ["➕ Input Manual"]
 
 def generate_credentials(nama, s_id):
     u_name = f"vinix_{nama.lower().split()[0]}_{s_id}"
@@ -52,7 +60,7 @@ def generate_credentials(nama, s_id):
     return u_name, u_pass
 
 # ==========================================
-# 2. HALAMAN UTAMA
+# 2. MAIN INTERFACE
 # ==========================================
 def mahasiswa_page():
     st.title("👨‍🎓 Manajemen Mahasiswa")
@@ -62,62 +70,66 @@ def mahasiswa_page():
     cur = conn.cursor()
 
     tab_list, tab_import, tab_manual = st.tabs([
-        "📊 Database", "📤 Import Kolektif", "➕ Tambah Manual"
+        "📊 Database", "📥 Registrasi Kolektif", "✍️ Entri Mandiri"
     ])
 
     # --- TAB 1: DATABASE ---
     with tab_list:
-        cur.execute("SELECT id, name, division, university FROM students ORDER BY id DESC")
+        st.subheader("Daftar Mahasiswa Terdaftar")
+        cur.execute("SELECT s.id, u.username, s.name, s.division, s.university FROM students s JOIN users u ON s.id = u.student_id WHERE u.role = 'mahasiswa' ORDER BY s.id DESC")
         data = cur.fetchall()
         if data:
-            df = pd.DataFrame(data, columns=["ID", "Nama", "Divisi", "Universitas"])
+            df = pd.DataFrame(data, columns=["ID", "Username", "Nama", "Divisi", "Universitas"])
             st.dataframe(df, use_container_width=True, hide_index=True)
 
     # --- TAB 2: IMPORT KOLEKTIF ---
     with tab_import:
-        st.subheader("Registrasi via File")
-        # Tooltip menggantikan teks manual
-        uploaded_file = st.file_uploader("", type=["csv", "xlsx"], help="Format: id, name, division, university")
+        st.subheader("Import Data via File")
+        uploaded_file = st.file_uploader("Pilih file CSV atau Excel", type=["csv", "xlsx"], help="Format: id, name, division, university")
+        
         if uploaded_file:
-            try:
-                df_up = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
-                if st.button("Proses Data Kolektif"):
-                    for _, row in df_up.iterrows():
-                        sid, sname, sdiv, suniv = row['id'], row['name'], row['division'], row['university']
-                        u, p = generate_credentials(sname, sid)
-                        cur.execute("INSERT INTO students (id, name, division, university) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE name=VALUES(name)", (sid, sname, sdiv, suniv))
-                        cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE username=VALUES(username)", (u, p, "mahasiswa", sid))
-                    conn.commit()
-                    st.success("Selesai.")
-                    st.rerun()
-            except Exception as e: st.error(f"Gagal: {e}")
+            df_up = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
+            if st.button("Proses Import", key="btn_bulk"):
+                for _, row in df_up.iterrows():
+                    sid, sname, sdiv, suniv = row['id'], row['name'], row['division'], row['university']
+                    u, p = generate_credentials(sname, sid)
+                    cur.execute("INSERT INTO students (id, name, division, university) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE name=VALUES(name)", (sid, sname, sdiv, suniv))
+                    cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE username=VALUES(username)", (u, p, "mahasiswa", sid))
+                conn.commit()
+                st.success("Data berhasil diimpor.")
+                st.rerun()
 
-    # --- TAB 3: PENDAFTARAN MANUAL (TANPA CSV UNIV) ---
+    # --- TAB 3: ENTRI MANDIRI (DENGAN CSV UNIVERSITAS) ---
     with tab_manual:
         st.subheader("Input Data Mahasiswa Baru")
         
         col1, col2 = st.columns(2)
         with col1:
-            nama_m = st.text_input("N1", placeholder="Nama Lengkap", key="m1")
-            div_m = st.selectbox("D1", ["Web Developer", "Data Science", "AI Engineer"], key="m2")
+            # Teks di atas box diaktifkan kembali
+            nama_m = st.text_input("Nama Lengkap", placeholder="Contoh: Budi Santoso", key="m_nama")
+            div_m = st.selectbox("Divisi Penempatan", ["Web Developer", "Data Science", "AI Engineer"], key="m_div")
         
         with col2:
-            # Universitas murni input manual tanpa file eksternal
-            univ_m = st.text_input("U1", placeholder="Asal Universitas / Instansi", key="m3")
+            # Menggunakan list dari CSV universitas_indonesia.csv
+            univ_list = get_list_universitas()
+            univ_p = st.selectbox("Asal Universitas", options=univ_list, index=None, placeholder="Pilih Kampus", key="m_univ_s")
+            
+            if univ_p == "➕ Input Manual":
+                univ_m = st.text_input("Nama Universitas Manual", placeholder="Masukkan nama kampus", key="m_univ_t")
+            else:
+                univ_m = univ_p
 
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Simpan ke Database", key="m4"):
+        if st.button("Simpan ke Database", key="m_save"):
             if nama_m and univ_m:
-                try:
-                    cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama_m, div_m, univ_m))
-                    conn.commit()
-                    new_id = cur.lastrowid
-                    u, p = generate_credentials(nama_m, new_id)
-                    cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", (u, p, "mahasiswa", new_id))
-                    conn.commit()
-                    st.success(f"Berhasil! User: {u}")
-                except Exception as e: st.error(f"Database Error: {e}")
+                cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama_m, div_m, univ_m))
+                conn.commit()
+                new_id = cur.lastrowid
+                u, p = generate_credentials(nama_m, new_id)
+                cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", (u, p, "mahasiswa", new_id))
+                conn.commit()
+                st.success(f"Berhasil disimpan. Username: {u}")
             else:
-                st.warning("Kotak input tidak boleh kosong.")
+                st.warning("Mohon lengkapi data.")
 
     conn.close()
