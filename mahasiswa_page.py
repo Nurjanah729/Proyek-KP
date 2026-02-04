@@ -16,12 +16,12 @@ def get_list_universitas():
             df_new = pd.read_excel(file_mhs)
 
                 # Bersihkan nama kolom dari spasi yang tidak sengaja
-            df_new.columns = [c.strip().lower() for c in df_new.columns]
+        df_new.columns = [c.strip().lower() for c in df_new.columns]
                 
-            st.write("Preview Data:")
-            st.dataframe(df_new.head())
+        st.write("Preview Data:")
+        st.dataframe(df_new.head())
 
-            if st.button("✅ Daftarkan Semua Mahasiswa di Atas"):
+        if st.button("✅ Daftarkan Semua Mahasiswa di Atas"):
                     # Cek apakah kolom 'id' benar-benar ada
             if 'id' not in df_new.columns:
                 st.error(f"Kolom 'id' tidak ditemukan. Kolom yang terbaca: {list(df_new.columns)}")
@@ -195,4 +195,5 @@ def mahasiswa_page():
     df = pd.DataFrame(rows, columns=["ID", "Username", "Nama", "Divisi", "Universitas"])
     df.insert(0, "No", range(1, len(df) + 1))
     st.dataframe(df[["No", "Username", "Nama", "Divisi", "Universitas"]], use_container_width=True)
+
 
