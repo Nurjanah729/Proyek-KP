@@ -13,7 +13,7 @@ st.markdown("""
         background-color: #FFFFFF;
     }
     
-    /* Warna Tab yang tegas dan kontras (Hitam di atas Putih) */
+    /* Warna Tab yang tegas dan kontras */
     .stTabs [data-baseweb="tab-list"] {
         gap: 24px;
         border-bottom: 2px solid #F0F2F6;
@@ -23,14 +23,14 @@ st.markdown("""
         white-space: pre-wrap;
         background-color: transparent;
         border-radius: 4px 4px 0px 0px;
-        color: #4A4A4A !important; /* Abu-abu gelap */
+        color: #4A4A4A !important;
     }
     .stTabs [aria-selected="true"] {
-        color: #0045AD !important; /* Biru Royal saat terpilih */
+        color: #0045AD !important;
         border-bottom: 3px solid #0045AD !important;
     }
 
-    /* Styling Input Box agar lebih elegan */
+    /* Styling Input Box */
     .stTextInput input, .stSelectbox [data-baseweb="select"] {
         background-color: #F8F9FA !important;
         border: 1px solid #E9ECEF !important;
@@ -38,7 +38,7 @@ st.markdown("""
         border-radius: 8px !important;
     }
 
-    /* Tombol Utama (Biru Profesional) */
+    /* Tombol Utama */
     div.stButton > button {
         background-color: #0045AD !important;
         color: white !important;
@@ -47,50 +47,51 @@ st.markdown("""
         font-weight: 600 !important;
         padding: 0.6rem 2rem !important;
         transition: all 0.3s ease;
+        width: 100%;
+        margin-top: 1rem;
     }
     div.stButton > button:hover {
         background-color: #003385 !important;
         box-shadow: 0 4px 12px rgba(0,69,173,0.2);
     }
 
-    /* Styling khusus untuk input manual - MEMPERJELAS TEKS */
-    .manual-input-container {
-        margin-top: 1rem;
-        padding: 1.5rem;
-        background-color: #F8F9FA;
-        border-radius: 12px;
-        border: 2px solid #E9ECEF;
-    }
-    .manual-input-container .stTextInput input {
-        background-color: #FFFFFF !important;
-        border: 2px solid #0045AD !important;
-        font-size: 16px !important;
-        color: #212529 !important;
-        padding: 12px 16px !important;
-    }
-    .manual-input-label {
-        font-weight: 600 !important;
-        color: #0045AD !important;
-        font-size: 1.1rem !important;
-        margin-bottom: 0.5rem !important;
-        display: block !important;
-    }
-    .manual-input-help {
-        color: #6C757D !important;
-        font-size: 0.9rem !important;
-        margin-top: 0.25rem !important;
-        font-style: italic !important;
+    /* Label styling */
+    .custom-label {
+        font-weight: 600;
+        color: #2C3E50;
+        margin-bottom: 8px;
+        display: block;
+        font-size: 14px;
     }
     
-    /* Styling untuk dropdown universitas */
-    .university-select-container {
+    /* Manual input container */
+    .manual-input-box {
+        padding: 1.5rem;
+        background-color: #F8FAFC;
+        border-radius: 10px;
+        border: 1px solid #E2E8F0;
+        margin-top: 1rem;
+    }
+    
+    /* Section spacing */
+    .form-section {
         margin-bottom: 1.5rem;
     }
     
-    /* Highlight untuk opsi "Input Manual" */
-    [data-baseweb="select"] div[role="option"]:contains("➕ Input Manual") {
-        color: #0045AD !important;
-        font-weight: 600 !important;
+    /* Required field indicator */
+    .required::after {
+        content: " *";
+        color: #E74C3C;
+    }
+    
+    /* Info box */
+    .info-box {
+        background-color: #E8F4FC;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border-left: 4px solid #3498DB;
+        margin-top: 1rem;
+        font-size: 14px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -112,7 +113,7 @@ def generate_credentials(nama, s_id):
     return u_name, u_pass
 
 # ==========================================
-# 2. MAIN INTERFACE
+# 2. MAIN INTERFACE - ENTRI MANDIRI TAB
 # ==========================================
 def mahasiswa_page():
     st.title("👨‍🎓 Manajemen Mahasiswa")
@@ -122,7 +123,7 @@ def mahasiswa_page():
     conn = get_db()
     cur = conn.cursor()
 
-    # Navigasi Tab dengan Label yang Jelas
+    # Navigasi Tab
     tab_list, tab_import, tab_manual = st.tabs([
         "📁 Database Terpusat", 
         "📤 Registrasi Kolektif", 
@@ -142,21 +143,20 @@ def mahasiswa_page():
         data = cur.fetchall()
         if data:
             df = pd.DataFrame(data, columns=["ID", "Username", "Nama Mahasiswa", "Divisi", "Universitas"])
-            st.dataframe(df, use_container_width=True, hide_index=True) # Menggunakan tabel bersih
+            st.dataframe(df, use_container_width=True, hide_index=True)
         else:
             st.info("Tidak ada data mahasiswa yang ditemukan dalam database.")
 
     # --- TAB 2: IMPORT KOLEKTIF ---
     with tab_import:
         st.subheader("Unggah Data Massal")
-        # Tooltip menggantikan teks manual yang berantakan
-        uploaded_file = st.file_uploader("", type=["csv", "xlsx"], 
+        uploaded_file = st.file_uploader("Pilih file CSV atau Excel", type=["csv", "xlsx"], 
                                          help="Header wajib: id, name, division, university")
         
         if uploaded_file:
             try:
                 df_up = pd.read_csv(uploaded_file, sep=None, engine='python') if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
-                df_up.columns = [c.strip().lower() for c in df_up.columns] # Normalisasi kolom
+                df_up.columns = [c.strip().lower() for c in df_up.columns]
                 
                 st.write("**Pratinjau Berkas:**")
                 st.dataframe(df_up.head(3), use_container_width=True)
@@ -180,66 +180,105 @@ def mahasiswa_page():
     with tab_manual:
         st.subheader("Registrasi Mahasiswa Baru")
         
-        # Grid Layout tanpa label teks atas
-        c1, c2 = st.columns(2)
-        
-        with c1:
-            nama_m = st.text_input("", placeholder="Nama Lengkap", key="m_nama")
-            div_m = st.selectbox("", ["Web Developer", "Data Science", "AI Engineer"], index=0, key="m_div")
-        
-        with c2:
-            univ_list = get_list_universitas()
-            univ_p = st.selectbox("", options=univ_list, index=None, 
-                                 placeholder="🔍 Pilih Universitas dari daftar...", 
-                                 key="m_univ_s")
+        # Container utama untuk form
+        with st.container():
+            st.markdown('<div class="form-section">', unsafe_allow_html=True)
             
-            # PERBAIKAN UTAMA: Membuat input manual lebih jelas
-            if univ_p == "➕ Input Manual":
-                # Container khusus untuk input manual dengan styling jelas
-                st.markdown('<div class="manual-input-container">', unsafe_allow_html=True)
-                st.markdown('<span class="manual-input-label">✏️ Input Nama Universitas Manual</span>', unsafe_allow_html=True)
-                univ_m = st.text_input("", 
-                                      placeholder="Ketik nama universitas disini...", 
-                                      key="m_univ_t",
-                                      label_visibility="collapsed")
-                st.markdown('<span class="manual-input-help">Pastikan nama universitas ditulis dengan benar</span>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                univ_m = univ_p
-                # Tampilkan pesan jika universitas dipilih dari daftar
-                if univ_m:
-                    st.info(f"✅ Universitas dipilih: **{univ_m}**")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # Tombol dengan feedback yang lebih jelas
-        if st.button("Simpan ke Database", key="btn_save_manual", type="primary"):
-            if nama_m and univ_m:
-                cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama_m, div_m, univ_m))
-                conn.commit()
-                new_id = cur.lastrowid
-                u, p = generate_credentials(nama_m, new_id)
-                cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", (u, p, "mahasiswa", new_id))
-                conn.commit()
+            # Grid Layout dalam 2 kolom
+            c1, c2 = st.columns(2)
+            
+            with c1:
+                # NAMA LENGKAP dengan label jelas
+                st.markdown('<span class="custom-label required">Nama Lengkap</span>', unsafe_allow_html=True)
+                nama_m = st.text_input("", placeholder="Contoh: Budi Santoso", key="m_nama", label_visibility="collapsed")
                 
-                # Tampilkan hasil dengan lebih jelas
-                st.success("🎉 Pendaftaran Berhasil!")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("ID Mahasiswa", new_id)
-                with col2:
-                    st.metric("Username", u)
-                with col3:
-                    st.metric("Password", p)
-                    
-                # Tampilkan ringkasan data
-                st.info(f"""
-                **Ringkasan Data:**
-                - Nama: {nama_m}
-                - Divisi: {div_m}
-                - Universitas: {univ_m}
-                """)
-            else:
-                st.warning("⚠️ Mohon lengkapi seluruh data yang diperlukan.")
+                # DIVISI dengan label jelas
+                st.markdown('<span class="custom-label required">Divisi</span>', unsafe_allow_html=True)
+                div_m = st.selectbox("", ["Web Developer", "Data Science", "AI Engineer"], index=0, key="m_div", label_visibility="collapsed")
+            
+            with c2:
+                # UNIVERSITAS dengan label jelas
+                st.markdown('<span class="custom-label required">Universitas</span>', unsafe_allow_html=True)
+                univ_list = get_list_universitas()
+                univ_p = st.selectbox(
+                    "", 
+                    options=univ_list, 
+                    index=None, 
+                    placeholder="Pilih dari daftar...", 
+                    key="m_univ_s",
+                    label_visibility="collapsed"
+                )
+                
+                # Input manual jika dipilih
+                if univ_p == "➕ Input Manual":
+                    st.markdown('<div class="manual-input-box">', unsafe_allow_html=True)
+                    st.markdown('<span class="custom-label">✏️ Input Nama Universitas Manual</span>', unsafe_allow_html=True)
+                    univ_m = st.text_input(
+                        "", 
+                        placeholder="Ketik nama universitas lengkap...", 
+                        key="m_univ_t",
+                        label_visibility="collapsed"
+                    )
+                    st.caption("Pastikan nama universitas ditulis dengan benar dan lengkap")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                else:
+                    univ_m = univ_p
+                    # Tampilkan preview universitas yang dipilih
+                    if univ_m:
+                        st.markdown(f'''
+                        <div class="info-box">
+                        ✅ <strong>Universitas terpilih:</strong> {univ_m}
+                        </div>
+                        ''', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Spacer
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Validasi dan tombol simpan
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button("💾 Simpan ke Database", key="btn_save_manual", type="primary", use_container_width=True):
+                    if not nama_m:
+                        st.error("Nama lengkap wajib diisi")
+                    elif not univ_m:
+                        st.error("Universitas wajib diisi")
+                    else:
+                        # Simpan ke database
+                        cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama_m, div_m, univ_m))
+                        conn.commit()
+                        new_id = cur.lastrowid
+                        u, p = generate_credentials(nama_m, new_id)
+                        cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", (u, p, "mahasiswa", new_id))
+                        conn.commit()
+                        
+                        # Tampilkan hasil sukses
+                        st.success("✅ Data berhasil disimpan!")
+                        
+                        # Tampilkan detail dalam expander
+                        with st.expander("📋 Detail Pendaftaran", expanded=True):
+                            col_a, col_b, col_c = st.columns(3)
+                            with col_a:
+                                st.metric("ID Mahasiswa", new_id)
+                            with col_b:
+                                st.metric("Username", u)
+                            with col_c:
+                                st.metric("Password", p)
+                            
+                            st.markdown(f"""
+                            **Data Mahasiswa:**
+                            - **Nama:** {nama_m}
+                            - **Divisi:** {div_m}
+                            - **Universitas:** {univ_m}
+                            """)
+                            
+                            # Tombol untuk reset form
+                            if st.button("➕ Tambah Data Baru", type="secondary"):
+                                st.rerun()
 
     conn.close()
+
+# Jalankan aplikasi
+if __name__ == "__main__":
+    mahasiswa_page()
