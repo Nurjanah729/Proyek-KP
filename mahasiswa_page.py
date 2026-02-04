@@ -9,19 +9,24 @@ import random
 @st.cache_data
 def get_list_universitas():
     try:
-        # 1. Membaca file sesuai nama yang kamu upload
-        df = pd.read_csv("universitas_indonesia.csv")
-        
-        # 2. Ambil data dari kolom 'nama_universitas' (sesuai isi filemu)
-        list_univ = sorted(df['nama_universitas'].dropna().unique().tolist())
-        
-        # 3. Tambahkan opsi manual
-        list_univ.append("➕ Input Manual (Tidak ada di daftar)")
-        return list_univ
-    except Exception as e:
-        # Jika muncul ini di web, berarti file CSV belum terbaca oleh GitHub/Streamlit
-        return [f"Error baca CSV: {e}", "➕ Input Manual (Tidak ada di daftar)"]
+        if file_mhs.name.endswith('.csv'):
+                    # Tambahkan sep=None agar pandas otomatis mendeteksi pemisah (koma atau titik koma)
+            df_new = pd.read_csv(file_mhs, sep=None, engine='python')
+        else:
+            df_new = pd.read_excel(file_mhs)
 
+                # Bersihkan nama kolom dari spasi yang tidak sengaja
+            df_new.columns = [c.strip().lower() for c in df_new.columns]
+                
+            st.write("Preview Data:")
+            st.dataframe(df_new.head())
+
+            if st.button("✅ Daftarkan Semua Mahasiswa di Atas"):
+                    # Cek apakah kolom 'id' benar-benar ada
+            if 'id' not in df_new.columns:
+                st.error(f"Kolom 'id' tidak ditemukan. Kolom yang terbaca: {list(df_new.columns)}")
+            else:
+                        # ... (lanjutkan kode simpan seperti sebelumnya)
 def mahasiswa_page():
     st.markdown("## 👨‍🎓 Kelola Mahasiswa")
     st.markdown("Manajemen data mahasiswa magang & studi independen")
@@ -190,3 +195,4 @@ def mahasiswa_page():
     df = pd.DataFrame(rows, columns=["ID", "Username", "Nama", "Divisi", "Universitas"])
     df.insert(0, "No", range(1, len(df) + 1))
     st.dataframe(df[["No", "Username", "Nama", "Divisi", "Universitas"]], use_container_width=True)
+
