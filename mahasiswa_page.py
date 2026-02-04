@@ -4,8 +4,57 @@ from db import get_db
 import random
 
 # ==========================================
-# 1. LOGIKA PENDUKUNG (UTILITY)
+# 1. UI CUSTOMIZATION (CLEAN LIGHT MODE)
 # ==========================================
+st.markdown("""
+    <style>
+    /* Latar belakang halaman putih bersih */
+    .stApp {
+        background-color: #FFFFFF;
+    }
+    
+    /* Warna Tab yang tegas dan kontras (Hitam di atas Putih) */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+        border-bottom: 2px solid #F0F2F6;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: transparent;
+        border-radius: 4px 4px 0px 0px;
+        color: #4A4A4A !important; /* Abu-abu gelap */
+    }
+    .stTabs [aria-selected="true"] {
+        color: #0045AD !important; /* Biru Royal saat terpilih */
+        border-bottom: 3px solid #0045AD !important;
+    }
+
+    /* Styling Input Box agar lebih elegan */
+    .stTextInput input, .stSelectbox [data-baseweb="select"] {
+        background-color: #F8F9FA !important;
+        border: 1px solid #E9ECEF !important;
+        color: #212529 !important;
+        border-radius: 8px !important;
+    }
+
+    /* Tombol Utama (Biru Profesional) */
+    div.stButton > button {
+        background-color: #0045AD !important;
+        color: white !important;
+        border-radius: 8px !important;
+        border: none !important;
+        font-weight: 600 !important;
+        padding: 0.6rem 2rem !important;
+        transition: all 0.3s ease;
+    }
+    div.stButton > button:hover {
+        background-color: #003385 !important;
+        box-shadow: 0 4px 12px rgba(0,69,173,0.2);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 @st.cache_data
 def get_list_universitas():
     try:
@@ -22,25 +71,26 @@ def generate_credentials(nama, s_id):
     return u_name, u_pass
 
 # ==========================================
-# 2. ANTARMUKA UTAMA
+# 2. MAIN INTERFACE
 # ==========================================
 def mahasiswa_page():
-    st.title("👨‍🎓 Sistem Informasi Mahasiswa")
-    st.caption("Otoritas manajemen data akademik dan akun akses mahasiswa.")
-    
+    st.title("👨‍🎓 Manajemen Mahasiswa")
+    st.markdown("<p style='color: #6C757D; font-size: 1.1em;'>Sistem administrasi pusat untuk pengelolaan data mahasiswa dan kredensial akses.</p>", unsafe_allow_html=True)
+    st.divider()
+
     conn = get_db()
     cur = conn.cursor()
 
-    # Navigasi Tab Profesional
+    # Navigasi Tab dengan Label yang Jelas
     tab_list, tab_import, tab_manual = st.tabs([
-        "📊 Database Mahasiswa", 
-        "📥 Registrasi Kolektif", 
-        "✍️ Entri Mandiri"
+        "📁 Database Terpusat", 
+        "📤 Registrasi Kolektif", 
+        "➕ Entri Mandiri"
     ])
 
     # --- TAB 1: DATABASE ---
     with tab_list:
-        st.subheader("Daftar Mahasiswa Terdaftar")
+        st.subheader("Daftar Entitas Terdaftar")
         cur.execute("""
             SELECT s.id, u.username, s.name, s.division, s.university 
             FROM students s 
@@ -50,36 +100,27 @@ def mahasiswa_page():
         """)
         data = cur.fetchall()
         if data:
-            df = pd.DataFrame(data, columns=["ID", "Username", "Nama Lengkap", "Divisi", "Instansi Pendidikan"])
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            df = pd.DataFrame(data, columns=["ID", "Username", "Nama Mahasiswa", "Divisi", "Universitas"])
+            st.dataframe(df, use_container_width=True, hide_index=True) # Menggunakan tabel bersih
         else:
-            st.info("Belum ada data mahasiswa yang tersimpan dalam sistem.")
+            st.info("Tidak ada data mahasiswa yang ditemukan dalam database.")
 
-    # --- TAB 2: REGISTRASI KOLEKTIF (IMPORT) ---
+    # --- TAB 2: IMPORT KOLEKTIF ---
     with tab_import:
-        st.subheader("Sinkronisasi Data Massal")
-        st.info("Pastikan file Anda memiliki header: id, name, division, university")
-        
-        uploaded_file = st.file_uploader("", type=["csv", "xlsx"], help="Drag & drop file laporan di sini")
+        st.subheader("Unggah Data Massal")
+        # Tooltip menggantikan teks manual yang berantakan
+        uploaded_file = st.file_uploader("", type=["csv", "xlsx"], 
+                                         help="Header wajib: id, name, division, university")
         
         if uploaded_file:
             try:
-                if uploaded_file.name.endswith('.csv'):
-                    df_up = pd.read_csv(uploaded_file, sep=None, engine='python')
-                else:
-                    df_up = pd.read_excel(uploaded_file)
+                df_up = pd.read_csv(uploaded_file, sep=None, engine='python') if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
+                df_up.columns = [c.strip().lower() for c in df_up.columns] # Normalisasi kolom
                 
-                # Auto-fix data menumpuk
-                df_up.columns = [c.strip().lower() for c in df_up.columns]
-                if len(df_up.columns) == 1 and ',' in df_up.columns[0]:
-                    raw_cols = df_up.columns[0]
-                    df_up = df_up[raw_cols].str.split(',', expand=True)
-                    df_up.columns = [c.strip().lower() for c in raw_cols.split(',')]
-
                 st.write("**Pratinjau Berkas:**")
                 st.dataframe(df_up.head(3), use_container_width=True)
 
-                if st.button("Lakukan Integrasi Data", type="primary", use_container_width=True):
+                if st.button("Lakukan Integrasi Data", key="btn_bulk"):
                     for _, row in df_up.iterrows():
                         sid, sname = int(row['id']), str(row['name'])
                         sdiv, suniv = str(row['division']), str(row['university'])
@@ -89,32 +130,29 @@ def mahasiswa_page():
                         cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE username=VALUES(username)", (uname, upass, "mahasiswa", sid))
                     
                     conn.commit()
-                    st.success("Sinkronisasi database berhasil diselesaikan.")
+                    st.success("Sinkronisasi database berhasil.")
                     st.rerun()
             except Exception as e:
-                st.error(f"Kegagalan sistem saat memproses berkas: {e}")
+                st.error(f"Kesalahan sistem: {e}")
 
-    # --- TAB 3: ENTRI MANDIRI (MANUAL) ---
+    # --- TAB 3: ENTRI MANDIRI ---
     with tab_manual:
-        st.subheader("Pendaftaran Mahasiswa Baru")
+        st.subheader("Registrasi Mahasiswa Baru")
         
-        # Form tanpa teks label di atas box (menggunakan placeholder)
-        col_a, col_b = st.columns(2)
-        with col_a:
-            nama_m = st.text_input("", placeholder="Nama Lengkap Mahasiswa", key="m_nama")
+        # Grid Layout tanpa label teks atas
+        c1, c2 = st.columns(2)
+        with c1:
+            nama_m = st.text_input("", placeholder="Nama Lengkap", key="m_nama")
             div_m = st.selectbox("", ["Web Developer", "Data Science", "AI Engineer"], index=0, key="m_div")
         
-        with col_b:
+        with c2:
             univ_list = get_list_universitas()
-            univ_p = st.selectbox("", options=univ_list, index=None, placeholder="Pilih Instansi/Kampus", key="m_univ_s")
+            univ_p = st.selectbox("", options=univ_list, index=None, placeholder="Pilih Universitas", key="m_univ_s")
             
-            univ_m = ""
-            if univ_p == "➕ Input Manual":
-                univ_m = st.text_input("", placeholder="Ketik Nama Universitas di sini", key="m_univ_t")
-            else:
-                univ_m = univ_p
+            univ_m = st.text_input("", placeholder="Tulis Nama Universitas", key="m_univ_t") if univ_p == "➕ Input Manual" else univ_p
 
-        if st.button("Simpan ke Database", type="primary", use_container_width=True):
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Simpan ke Database", key="btn_save_manual"):
             if nama_m and univ_m:
                 cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama_m, div_m, univ_m))
                 conn.commit()
@@ -122,12 +160,8 @@ def mahasiswa_page():
                 u, p = generate_credentials(nama_m, new_id)
                 cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", (u, p, "mahasiswa", new_id))
                 conn.commit()
-                st.success(f"Mahasiswa baru terdaftar. Akun: {u} | Sandi: {p}")
+                st.success(f"Pendaftaran Berhasil. User: {u}")
             else:
-                st.warning("Seluruh field entri wajib dilengkapi.")
+                st.warning("Mohon lengkapi seluruh data.")
 
     conn.close()
-
-# Footer Profesional
-st.divider()
-st.caption("© 2026 Vinix Intelligence - Secure Administrative Portal")
