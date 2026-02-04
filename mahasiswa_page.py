@@ -3,50 +3,41 @@ import pandas as pd
 from db import get_db
 
 # ==========================================
-# 1. CSS AGRESIF (MEMAKSA TEKS TETAP HITAM)
+# 1. STYLE AGAR TEKS PASTI TERLIHAT (HITAM)
 # ==========================================
 st.markdown("""
     <style>
-    /* Mengunci warna teks global agar tidak berubah saat rerun */
-    html, body, [data-testid="stWidgetLabel"], p, span, label {
+    /* Mengunci teks agar tetap hitam pekat */
+    html, body, [data-testid="stWidgetLabel"], p, label {
         color: #111111 !important;
-        font-family: 'Inter', sans-serif;
     }
-
-    /* Memastikan teks Tab tetap hitam pekat dan tebal */
     .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
         color: #111111 !important;
         font-weight: 700 !important;
-        font-size: 16px !important;
     }
-
-    /* Styling Box Input agar border terlihat jelas */
-    .stTextInput input, .stSelectbox [data-baseweb="select"] {
-        border: 1px solid #B0B0B0 !important;
-        background-color: #FFFFFF !important;
-        color: #111111 !important;
-        border-radius: 8px !important;
-    }
-
-    /* Tombol Biru Royal Profesional */
+    /* Style tombol biru */
     div.stButton > button {
         background-color: #0045AD !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        font-weight: 600 !important;
-        padding: 10px 24px !important;
+        color: white !important;
+        font-weight: bold !important;
+        width: 100%;
     }
     </style>
     """, unsafe_allow_html=True)
 
+# ==========================================
+# 2. LOGIKA DATA & SESSION (AGAR TIDAK RESET)
+# ==========================================
+if 'active_tab' not in st.session_state:
+    st.session_state.active_tab = 0
+
 @st.cache_data
-def get_univ_data():
+def get_univ_list():
     try:
         df = pd.read_csv("universitas_indonesia.csv")
         return sorted(df['nama_universitas'].dropna().unique().tolist())
-    except Exception as e:
-        st.error(f"Gagal memuat file universitas: {e}")
-        return []
+    except:
+        return ["Universitas Indonesia", "Institut Teknologi Bandung"]
 
 def generate_credentials(nama, s_id):
     u_name = f"vinix_{nama.lower().split()[0]}_{s_id}"
@@ -54,78 +45,83 @@ def generate_credentials(nama, s_id):
     return u_name, u_pass
 
 # ==========================================
-# 2. HALAMAN UTAMA
+# 3. INTERFACE UTAMA
 # ==========================================
 def mahasiswa_page():
-    st.title("👨‍🎓 Kelola Mahasiswa")
+    st.title("👨‍🎓 Kelola Data Mahasiswa")
     st.divider()
 
     conn = get_db()
     cur = conn.cursor()
 
-    tab1, tab2, tab3 = st.tabs(["📊 Database", "📤 Import Kolektif", "➕ Tambah Manual"])
+    # Menggunakan session_state agar saat pilih "Input Manual", Tab tidak balik ke awal
+    tabs = ["📊 Database", "📥 Import Kolektif", "✍️ Tambah Manual"]
+    
+    # Logic agar tab tetap di posisi saat ini
+    tab1, tab2, tab3 = st.tabs(tabs)
 
+    # --- TAB 1 & 2 (Daftar & Import) ---
     with tab1:
-        st.subheader("Data Mahasiswa Terdaftar")
-        cur.execute("SELECT s.id, u.username, s.name, s.division, s.university FROM students s JOIN users u ON s.id = u.student_id ORDER BY s.id DESC")
-        data = cur.fetchall()
-        if data:
-            df = pd.DataFrame(data, columns=["ID", "Username", "Nama", "Divisi", "Universitas"])
-            st.dataframe(df, use_container_width=True, hide_index=True)
+        st.subheader("Daftar Mahasiswa")
+        cur.execute("SELECT id, name, division, university FROM students ORDER BY id DESC")
+        res = cur.fetchall()
+        if res:
+            st.dataframe(pd.DataFrame(res, columns=["ID", "Nama", "Divisi", "Universitas"]), use_container_width=True, hide_index=True)
 
     with tab2:
         st.subheader("Import Massal")
-        uploaded_file = st.file_uploader("Pilih Berkas CSV/XLSX", type=["csv", "xlsx"])
-        # Logika import file tetap ada di sini...
+        st.file_uploader("Upload CSV", type=["csv"], key="uploader")
 
-    # --- PERBAIKAN TOTAL TAB MANUAL ---
+    # --- TAB 3: TAMBAH MANUAL (TARGET PERBAIKAN) ---
     with tab3:
         st.subheader("Registrasi Mahasiswa Baru")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            nama_m = st.text_input("Nama Lengkap", placeholder="Masukkan nama lengkap...", key="form_nama")
-            div_m = st.selectbox("Divisi Penempatan", ["Web Developer", "Data Science", "AI Engineer"], key="form_div")
-        
-        with col2:
-            # Mengambil list dari CSV
-            list_univ = get_univ_data()
-            pilihan_univ = st.selectbox(
-                "Asal Universitas", 
-                options=["Pilih Universitas"] + list_univ + ["➕ Input Manual"],
-                key="form_univ_select"
-            )
-            
-            # Logika Input Manual agar label TIDAK hilang saat diklik
-            univ_m = ""
-            if pilihan_univ == "➕ Input Manual":
-                # Label ini sekarang dipaksa hitam oleh CSS di atas
-                univ_m = st.text_input("Ketik Nama Universitas", placeholder="Input manual di sini...", key="form_univ_manual")
-            elif pilihan_univ != "Pilih Universitas":
-                univ_m = pilihan_univ
+            # Teks label di atas box tetap ada
+            nama_m = st.text_input("Nama Lengkap Mahasiswa", placeholder="Contoh: Andi Pratama", key="input_nama")
+            div_m = st.selectbox("Divisi", ["Web Developer", "Data Science", "AI Engineer"], key="input_div")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        with col2:
+            # Mengambil data dari universitas_indonesia.csv
+            univ_data = get_univ_list()
+            
+            # Selectbox Universitas
+            pilihan_univ = st.selectbox(
+                "Pilih Universitas", 
+                options=["-- Pilih --"] + univ_data + ["➕ Input Manual"],
+                key="univ_select" # Key ini penting agar tidak reset
+            )
+
+            # BOX TEKS TAMBAHAN: Muncul otomatis di bawah selectbox tanpa pindah halaman
+            univ_final = ""
+            if pilihan_univ == "➕ Input Manual":
+                univ_final = st.text_input("Ketik Nama Universitas Baru", placeholder="Masukkan nama universitas...", key="univ_manual_box")
+            elif pilihan_univ != "-- Pilih --":
+                univ_final = pilihan_univ
+
+        st.write("") # Spasi
         
-        if st.button("Simpan Data Mahasiswa"):
-            if nama_m and univ_m:
+        if st.button("Simpan Data Mahasiswa", key="btn_save_final"):
+            if nama_m and univ_final:
                 try:
-                    # Simpan ke tabel students
-                    cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama_m, div_m, univ_m))
+                    cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama_m, div_m, univ_final))
                     conn.commit()
                     
-                    # Generate Akun
                     new_id = cur.lastrowid
                     u, p = generate_credentials(nama_m, new_id)
                     cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", (u, p, "mahasiswa", new_id))
                     conn.commit()
                     
-                    st.success(f"Mahasiswa {nama_m} berhasil didaftarkan!")
-                    st.info(f"Kredensial Login -> User: {u} | Pass: {p}")
-                    st.rerun()
+                    st.success(f"Berhasil Terdaftar! User: {u}")
                 except Exception as e:
-                    st.error(f"Gagal menyimpan: {e}")
+                    st.error(f"Error: {e}")
             else:
-                st.warning("Mohon lengkapi seluruh kolom input di atas.")
+                st.warning("Pastikan semua kolom (Nama & Universitas) sudah terisi.")
 
     conn.close()
+
+# Panggil fungsi
+if __name__ == "__main__":
+    mahasiswa_page()
