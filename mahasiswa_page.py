@@ -8,7 +8,7 @@ import random
 # ==========================================
 @st.cache_data
 def get_list_universitas():
-    try:
+            try:
                 if file_mhs.name.endswith('.csv'):
                     # Tambahkan sep=None agar pandas otomatis mendeteksi pemisah (koma atau titik koma)
                     df_new = pd.read_csv(file_mhs, sep=None, engine='python')
@@ -195,6 +195,7 @@ def mahasiswa_page():
     df = pd.DataFrame(rows, columns=["ID", "Username", "Nama", "Divisi", "Universitas"])
     df.insert(0, "No", range(1, len(df) + 1))
     st.dataframe(df[["No", "Username", "Nama", "Divisi", "Universitas"]], use_container_width=True)
+
 
 
 
