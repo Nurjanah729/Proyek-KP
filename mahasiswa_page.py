@@ -9,7 +9,7 @@ st.markdown("""
     <style>
     /* Mengunci semua teks agar tetap hitam tajam */
     html, body, [data-testid="stWidgetLabel"] p, .stTabs [data-baseweb="tab"] p {
-        color: #000000 !important;
+        color: black !important;
         font-weight: 700 !important;
         opacity: 1 !important;
     }
@@ -114,3 +114,4 @@ def mahasiswa_page():
 
 if __name__ == "__main__":
     mahasiswa_page()
+
