@@ -3,99 +3,86 @@ import pandas as pd
 from db import get_db
 
 # ==========================================
-# 1. CSS ABSOLUT (ANTI TEKS HILANG)
+# 1. UI CLEAN (KEMBALI KE PUTIH/DEFAULT)
 # ==========================================
-def apply_custom_css():
-    st.markdown("""
-        <style>
-        /* Paksa semua teks & label jadi hitam pekat setiap saat */
-        html, body, [data-testid="stWidgetLabel"] p, label, .stMarkdown p {
-            color: #000000 !important;
-            font-weight: 700 !important;
-            opacity: 1 !important;
-            -webkit-text-fill-color: #000000 !important;
-        }
-        
-        /* Box Upload agar terlihat jelas */
-        [data-testid="stFileUploader"] {
-            border: 2px dashed #0045AD !important;
-            background-color: #F0F2F6 !important;
-            border-radius: 10px;
-        }
-
-        /* Tombol Biru Royal */
-        div.stButton > button {
-            background-color: #0045AD !important;
-            color: white !important;
-            font-weight: bold !important;
-            height: 45px;
-            width: 100%;
-            border: none;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    /* Mengembalikan warna teks ke default putih/terang */
+    html, body, [data-testid="stWidgetLabel"] p, label, .stMarkdown p {
+        color: white !important;
+    }
+    
+    /* Tombol Biru agar tetap terlihat profesional */
+    div.stButton > button {
+        background-color: #0045AD !important;
+        color: white !important;
+        font-weight: bold !important;
+        border: none;
+        border-radius: 5px;
+        height: 45px;
+        width: 100%;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. HALAMAN INPUT NILAI
+# 2. HALAMAN INPUT NILAI (KHUSUS IMPORT)
 # ==========================================
 def input_nilai_page():
-    apply_custom_css()
-    st.title("📝 Manajemen Nilai Mahasiswa")
+    st.title("📥 Import Nilai Mahasiswa")
+    st.write("Silakan unggah berkas CSV atau Excel untuk memperbarui nilai.")
     st.divider()
 
-    # Navigasi stabil menggunakan radio
-    menu = st.radio("Pilih Menu:", ["📊 Lihat Nilai", "📤 Import Nilai (CSV/Excel)"], 
-                    horizontal=True, key="nav_nilai_final")
+    # Langsung ke fitur Upload (Tanpa Tab/Tanpa Input Manual)
+    uploaded_file = st.file_uploader("Pilih file (CSV/XLSX)", type=["csv", "xlsx"], key="final_uploader_nilai")
 
-    conn = get_db()
-    cur = conn.cursor()
+    if uploaded_file is not None:
+        try:
+            # Membaca file berdasarkan format
+            if uploaded_file.name.endswith('.csv'):
+                df = pd.read_csv(uploaded_file)
+            else:
+                df = pd.read_excel(uploaded_file)
 
-    if menu == "📊 Lihat Nilai":
-        st.subheader("Daftar Nilai Mahasiswa")
-        cur.execute("""
-            SELECT s.name, m.module, m.score 
-            FROM module_scores m 
-            JOIN students s ON m.student_id = s.id 
-            ORDER BY m.id DESC LIMIT 100
-        """)
-        res = cur.fetchall()
-        if res:
-            st.dataframe(pd.DataFrame(res, columns=["Nama", "Modul", "Skor"]), use_container_width=True)
-        else:
-            st.info("Belum ada data nilai.")
+            st.write("### Preview Data:")
+            st.dataframe(df.head())
 
-    elif menu == "📤 Import Nilai (CSV/Excel)":
-        st.subheader("Unggah Nilai Kolektif")
-        st.write("Format kolom: **student_id, module, score**")
-        
-        uploaded_file = st.file_uploader("Pilih Berkas", type=["csv", "xlsx"], key="uploader_nilai_v1")
+            if st.button("Simpan Data Nilai"):
+                conn = get_db()
+                cur = conn.cursor()
+                
+                success_count = 0
+                for _, row in df.iterrows():
+                    try:
+                        # Membersihkan data dari teks (S001 -> 1)
+                        raw_id = str(row['student_id']).upper().replace('S', '')
+                        s_id = int(''.join(filter(str.isdigit, raw_id)))
+                        
+                        # Modul 1 -> 1
+                        raw_mod = str(row['module']).lower().replace('modul', '').strip()
+                        m_num = int(''.join(filter(str.isdigit, raw_mod)))
+                        
+                        s_score = int(row['score'])
 
-        if uploaded_file:
-            try:
-                # Baca file
-                df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
-                st.write("**Pratinjau Data:**")
-                st.dataframe(df.head(), use_container_width=True)
+                        # Simpan/Update Nilai
+                        cur.execute("""
+                            INSERT INTO module_scores (student_id, module, score)
+                            VALUES (%s, %s, %s)
+                            ON DUPLICATE KEY UPDATE score = VALUES(score)
+                        """, (s_id, m_num, s_score))
+                        success_count += 1
+                    except:
+                        continue
+                
+                conn.commit()
+                cur.close()
+                conn.close()
+                
+                st.success(f"✅ Berhasil menyimpan {success_count} data nilai!")
+                st.balloons()
 
-                if st.button("🚀 Simpan Nilai ke Database"):
-                    for _, row in df.iterrows():
-                        try:
-                            sid = int(str(row['student_id']).upper().replace('S', ''))
-                            mod = int(row['module'])
-                            scr = int(row['score'])
-                            
-                            cur.execute("""
-                                INSERT INTO module_scores (student_id, module, score) 
-                                VALUES (%s, %s, %s) 
-                                ON DUPLICATE KEY UPDATE score=VALUES(score)
-                            """, (sid, mod, scr))
-                        except:
-                            continue
-                    
-                    conn.commit()
-                    st.success("Berhasil mengimpor nilai!")
-                    st.balloons()
-            except Exception as e:
-                st.error(f"Error membaca file: {e}")
+        except Exception as e:
+            st.error(f"❌ Terjadi kesalahan saat membaca file: {e}")
 
-    conn.close()
+if __name__ == "__main__":
+    input_nilai_page()
