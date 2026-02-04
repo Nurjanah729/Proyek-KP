@@ -117,23 +117,50 @@ def mahasiswa_page():
     # --- TAB 3: PENDAFTARAN MANUAL (CLEAN UI) ---
     with tab_manual:
         st.write("### Registrasi Mahasiswa Baru")
-        
-        # Grid tanpa label teks atas
+    
         col1, col2 = st.columns(2)
+    
+        # ===== KOLOM KIRI =====
         with col1:
-            nama_m = st.text_input("lbl1", placeholder="Nama Lengkap", key="in_nama")
-            div_m = st.selectbox("lbl2", ["Web Developer", "Data Science", "AI Engineer"], key="in_div")
-        
+            st.markdown("**Nama Lengkap**")
+            nama_m = st.text_input(
+                "",
+                placeholder="Masukkan nama lengkap",
+                key="in_nama"
+            )
+    
+            st.markdown("**Divisi**")
+            div_m = st.selectbox(
+                "",
+                ["Web Developer", "Data Science", "AI Engineer"],
+                key="in_div"
+            )
+    
+        # ===== KOLOM KANAN =====
         with col2:
-            univ_p = st.selectbox("lbl3", options=["Universitas Indonesia", "Institut Teknologi Bandung", "➕ Input Manual"], 
-                                  index=None, placeholder="Pilih Universitas", key="in_univ_s")
-            
-            # Input tambahan muncul hanya jika perlu
-            univ_m = ""
+            st.markdown("**Universitas**")
+            univ_p = st.selectbox(
+                "",
+                options=[
+                    "Universitas Indonesia",
+                    "Institut Teknologi Bandung",
+                    "➕ Input Manual"
+                ],
+                index=None,
+                placeholder="Pilih Universitas",
+                key="in_univ_s"
+            )
+    
             if univ_p == "➕ Input Manual":
-                univ_m = st.text_input("lbl4", placeholder="Ketik Nama Universitas", key="in_univ_t")
+                st.markdown("**Nama Universitas**")
+                univ_m = st.text_input(
+                    "",
+                    placeholder="Ketik nama universitas",
+                    key="in_univ_t"
+                )
             else:
                 univ_m = univ_p
+
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Simpan ke Database", key="in_save"):
@@ -152,3 +179,4 @@ def mahasiswa_page():
                 st.warning("Mohon isi semua data di dalam box.")
 
     conn.close()
+
