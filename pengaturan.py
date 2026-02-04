@@ -20,6 +20,17 @@ def pengaturan_page(student_id, conn):
             return
 
         with st.container():
+            st.markdown("""
+                <style>
+                div[data-baseweb="base-input"] input {
+                    color: #1F2937 !important;
+                }
+                label {
+                    color: #1F2937 !important; /* Supaya tulisan 'Password baru' muncul hitam */
+                    font-weight: bold;
+                }
+                </style>
+            """, unsafe_allow_html=True)
             with st.form("form_pengaturan"):
                 st.subheader("Ganti Password")
                 new_pass = st.text_input("Password baru", type="password")
