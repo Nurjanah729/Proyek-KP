@@ -4,14 +4,14 @@ import base64
 import matplotlib.pyplot as plt 
 import streamlit as st 
 import mysql.connector
-import pengaturan_page
+import pengaturan
 
 from mahasiswa_page import mahasiswa_page 
 from input_nilai_page import input_nilai_page 
 from analisis_nilai_page import analisis_nilai_page 
 from mahasiswa_dashboard import mahasiswa_dashboard 
 from db import get_db 
-from pengaturan import pengaturan_page  
+from pengaturan import pengaturan  
 
 
 
@@ -428,6 +428,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
