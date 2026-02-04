@@ -28,32 +28,48 @@ def input_nilai_page():
                 st.write("Preview Data:")
                 st.dataframe(df_mentor.head(), use_container_width=True)
 
-                if st.button("🚀 Sinkronkan Semua Nilai", use_container_width=True):
-                    st.write("🔄 Memulai proses sinkronisasi...") # Indikator proses mulai
+               if st.button("🚀 Sinkronkan Semua Nilai", use_container_width=True):
                     conn = get_db()
                     cur = conn.cursor()
                     
                     try:
-                        count = 0
+                        count_score = 0
+                        count_new_student = 0
+                        
                         for _, row in df_mentor.iterrows():
-                            # Mengonversi data ke tipe data yang benar secara eksplisit
                             s_id = int(row['student_id'])
                             m_num = int(row['module'])
                             s_score = int(row['score'])
                 
+                            # 1. CEK: Apakah ID mahasiswa ini sudah ada di tabel students?
+                            cur.execute("SELECT id FROM students WHERE id = %s", (s_id,))
+                            exists = cur.fetchone()
+                
+                            # 2. JIKA BELUM ADA: Daftarkan sebagai mahasiswa baru (Placeholder)
+                            if not exists:
+                                # Kita buat nama default jika di Excel tidak ada kolom nama
+                                # Jika ada kolom 'name' di Excel, ganti f"Mahasiswa {s_id}" menjadi row['name']
+                                default_name = f"Mahasiswa ID {s_id}" 
+                                cur.execute("""
+                                    INSERT INTO students (id, name, division, university)
+                                    VALUES (%s, %s, %s, %s)
+                                """, (s_id, default_name, "Unassigned", "External Source"))
+                                count_new_student += 1
+                
+                            # 3. MASUKKAN NILAI
                             cur.execute("""
                                 INSERT INTO module_scores (student_id, module, score)
                                 VALUES (%s, %s, %s)
                                 ON DUPLICATE KEY UPDATE score = VALUES(score)
                             """, (s_id, m_num, s_score))
-                            count += 1
+                            count_score += 1
                         
                         conn.commit()
-                        st.success(f"✅ Berhasil! {count} data nilai telah masuk ke database.")
+                        st.success(f"✅ Berhasil! {count_score} nilai masuk & {count_new_student} mahasiswa baru terdaftar.")
                         st.balloons()
                         
                     except Exception as e:
-                        st.error(f"❌ Terjadi kesalahan saat menyimpan: {e}")
+                        st.error(f"❌ Error: {e}")
                     finally:
                         cur.close()
                         conn.close()
@@ -114,4 +130,5 @@ def input_nilai_page():
         
         cur.close()
         conn.close()
+
 
