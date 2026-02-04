@@ -99,7 +99,7 @@ def mahasiswa_page():
 
     else:
         # Tampilan Database
-        cur.execute("SELECT id, name, division, university FROM students ORDER BY id DESC")
+        cur.execute("SELECT id, name, division, university FROM students ORDER BY id ASC")
         res = cur.fetchall()
         if res:
             st.table(pd.DataFrame(res, columns=["ID", "Nama", "Divisi", "Universitas"]))
@@ -108,3 +108,4 @@ def mahasiswa_page():
 
 if __name__ == "__main__":
     mahasiswa_page()
+
