@@ -53,6 +53,10 @@ def generate_credentials(nama, s_id):
 # ==========================================
 # 2. CORE LOGIC & INTERFACE
 # ==========================================
+def load_universitas():
+    df = pd.read_csv("universitas_indonesia.csv")
+    return df["universitas"].dropna().tolist()
+
 def mahasiswa_page():
     st.title("👨‍🎓 Panel Administrasi Mahasiswa")
     st.divider()
@@ -137,20 +141,21 @@ def mahasiswa_page():
             )
     
         # ===== KOLOM KANAN =====
+        # ===== KOLOM KANAN =====
         with col2:
             st.markdown("**Universitas**")
+        
+            list_univ = load_universitas()
+            list_univ.append("➕ Input Manual")
+        
             univ_p = st.selectbox(
                 "",
-                options=[
-                    "Universitas Indonesia",
-                    "Institut Teknologi Bandung",
-                    "➕ Input Manual"
-                ],
+                options=list_univ,
                 index=None,
                 placeholder="Pilih Universitas",
                 key="in_univ_s"
             )
-    
+        
             if univ_p == "➕ Input Manual":
                 st.markdown("**Nama Universitas**")
                 univ_m = st.text_input(
@@ -160,7 +165,6 @@ def mahasiswa_page():
                 )
             else:
                 univ_m = univ_p
-
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Simpan ke Database", key="in_save"):
@@ -179,4 +183,5 @@ def mahasiswa_page():
                 st.warning("Mohon isi semua data di dalam box.")
 
     conn.close()
+
 
