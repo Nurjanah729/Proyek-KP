@@ -29,26 +29,34 @@ def input_nilai_page():
                 st.dataframe(df_mentor.head(), use_container_width=True)
 
                 if st.button("🚀 Sinkronkan Semua Nilai", use_container_width=True):
+                    st.write("🔄 Memulai proses sinkronisasi...") # Indikator proses mulai
                     conn = get_db()
                     cur = conn.cursor()
                     
-                    # Validasi kolom
-                    if all(col in df_mentor.columns for col in ['student_id', 'module', 'score']):
+                    try:
+                        count = 0
                         for _, row in df_mentor.iterrows():
+                            # Mengonversi data ke tipe data yang benar secara eksplisit
+                            s_id = int(row['student_id'])
+                            m_num = int(row['module'])
+                            s_score = int(row['score'])
+                
                             cur.execute("""
                                 INSERT INTO module_scores (student_id, module, score)
                                 VALUES (%s, %s, %s)
                                 ON DUPLICATE KEY UPDATE score = VALUES(score)
-                            """, (int(row['student_id']), int(row['module']), int(row['score'])))
+                            """, (s_id, m_num, s_score))
+                            count += 1
                         
                         conn.commit()
-                        st.success(f"✅ Berhasil memproses {len(df_mentor)} entri nilai!")
+                        st.success(f"✅ Berhasil! {count} data nilai telah masuk ke database.")
                         st.balloons()
-                    else:
-                        st.error("Format kolom file tidak sesuai (harus: student_id, module, score)")
-                    
-                    cur.close()
-                    conn.close()
+                        
+                    except Exception as e:
+                        st.error(f"❌ Terjadi kesalahan saat menyimpan: {e}")
+                    finally:
+                        cur.close()
+                        conn.close()
 
             except Exception as e:
                 st.error(f"Gagal membaca file: {e}. Pastikan library 'openpyxl' sudah terinstall.")
@@ -106,3 +114,4 @@ def input_nilai_page():
         
         cur.close()
         conn.close()
+
