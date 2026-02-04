@@ -8,16 +8,15 @@ import io
 # ==========================================
 st.markdown("""
     <style>
-    /* Paksa teks agar SELALU PUTIH dan terlihat jelas */
+    /* Mengunci teks agar SELALU PUTIH */
     html, body, [data-testid="stWidgetLabel"] p, label, .stMarkdown p, h3, h2, h1, span {
         color: white !important;
         font-weight: 600 !important;
-        text-shadow: 1px 1px 2px black;
     }
     
-    /* Input file uploader tetap kontras */
+    /* Area upload file */
     [data-testid="stFileUploader"] {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.05);
         border: 1px dashed #FFD700;
         border-radius: 10px;
     }
@@ -41,80 +40,65 @@ def generate_credentials(nama, s_id):
     return u_name, u_pass
 
 # ==========================================
-# 2. HALAMAN MAHASISWA (FIX CSV & INTERFACE)
+# 2. FUNGSI UTAMA (FIX CSV & IMPORT)
 # ==========================================
 def mahasiswa_page():
     st.title("👨‍🎓 Panel Pendaftaran Mahasiswa")
     st.divider()
 
-    # Navigasi Horizontal yang Stabil
+    # Navigasi tetap di tempat
     menu = st.radio("Pilih Menu:", ["📊 Database Mahasiswa", "📤 Unggah Berkas CSV"], 
-                    horizontal=True, key="nav_fix_final")
+                    horizontal=True, key="nav_final_stable")
 
     conn = get_db()
     cur = conn.cursor()
 
     if menu == "📤 Unggah Berkas CSV":
         st.subheader("Registrasi Kolektif via CSV")
-        st.info("Pastikan CSV memiliki kolom: id, name, division, university")
         
-        uploaded_file = st.file_uploader("Pilih Berkas CSV Anda", type=["csv"], key="uploader_final")
+        uploaded_file = st.file_uploader("Pilih Berkas CSV", type=["csv"], key="uploader_csv_v3")
 
         if uploaded_file is not None:
             try:
-                # FIX CSV: Membaca file dan memaksa pemisahan kolom jika menumpuk
+                # SOLUSI CSV MENUMPUK: Membaca mentah lalu memaksa split
                 content = uploaded_file.getvalue().decode('utf-8')
+                # Menggunakan sep=None dan engine='python' untuk deteksi otomatis pemisah (koma/titik koma)
                 df = pd.read_csv(io.StringIO(content), sep=None, engine='python')
                 
-                # Membersihkan spasi pada nama kolom
-                df.columns = df.columns.str.strip()
+                # Membersihkan nama kolom dari spasi atau karakter aneh
+                df.columns = df.columns.str.strip().str.lower()
 
-                st.write("### Pratinjau Data Berkas:")
+                st.write("### Pratinjau Data (Pastikan sudah terbagi kolom):")
                 st.dataframe(df.head(), use_container_width=True)
 
                 if st.button("Konfirmasi & Simpan ke Database"):
                     success_count = 0
-                    for _, row in df.iterrows():
-                        try:
-                            # Mengambil data dengan nama kolom yang dibersihkan
-                            sid = row['id']
-                            sname = row['name']
-                            sdiv = row['division']
-                            suniv = row['university']
-                            
-                            uname, upass = generate_credentials(sname, sid)
+                    # Memastikan kolom yang dibutuhkan ada
+                    required = ['id', 'name', 'division', 'university']
+                    if all(col in df.columns for col in required):
+                        for _, row in df.iterrows():
+                            try:
+                                sid, sname = row['id'], row['name']
+                                sdiv, suniv = row['division'], row['university']
+                                uname, upass = generate_credentials(sname, sid)
 
-                            # 1. Simpan ke tabel students
-                            cur.execute("""
-                                INSERT INTO students (id, name, division, university) 
-                                VALUES (%s, %s, %s, %s) 
-                                ON DUPLICATE KEY UPDATE name=VALUES(name)
-                            """, (sid, sname, sdiv, suniv))
-                            
-                            # 2. Simpan ke tabel users
-                            cur.execute("""
-                                INSERT INTO users (username, password, role, student_id) 
-                                VALUES (%s, %s, %s, %s) 
-                                ON DUPLICATE KEY UPDATE username=VALUES(username)
-                            """, (uname, upass, "mahasiswa", sid))
-                            
-                            success_count += 1
-                        except Exception as e:
-                            continue
-
-                    conn.commit()
-                    if success_count > 0:
+                                # Simpan ke students & users
+                                cur.execute("INSERT INTO students (id, name, division, university) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE name=VALUES(name)", (sid, sname, sdiv, suniv))
+                                cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE username=VALUES(username)", (uname, upass, "mahasiswa", sid))
+                                success_count += 1
+                            except: continue
+                        
+                        conn.commit()
                         st.success(f"✅ Berhasil mengimpor {success_count} mahasiswa!")
                         st.balloons()
                     else:
-                        st.error("❌ Gagal mengimpor. Pastikan judul kolom di CSV Anda tepat: id, name, division, university")
+                        st.error(f"❌ Header CSV salah. Harus ada: {', '.join(required)}. Kolom terbaca: {', '.join(df.columns)}")
 
             except Exception as e:
-                st.error(f"Terjadi kesalahan pembacaan CSV: {e}")
+                st.error(f"Gagal membaca CSV: {e}")
 
     else:
-        # Tampilan Database Mahasiswa
-        st.subheader("Database Terdaftar")
+        # Tampilan Database
         cur.execute("SELECT id, name, division, university FROM students ORDER BY id DESC")
         res = cur.fetchall()
         if res:
