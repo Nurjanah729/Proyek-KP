@@ -21,6 +21,7 @@ def get_list_universitas():
     except Exception as e:
         # Jika muncul ini di web, berarti file CSV belum terbaca oleh GitHub/Streamlit
         return [f"Error baca CSV: {e}", "➕ Input Manual (Tidak ada di daftar)"]
+
 def mahasiswa_page():
     st.markdown("## 👨‍🎓 Kelola Mahasiswa")
     st.markdown("Manajemen data mahasiswa magang & studi independen")
@@ -31,8 +32,55 @@ def mahasiswa_page():
     conn = get_db()
     cur = conn.cursor()
 
+    # ==========================================
+    # [KODE BARU] IMPORT MASSAL MAHASISWA
+    # ==========================================
+    with st.expander("📥 Import Massal Mahasiswa (Excel/CSV)"):
+        st.markdown("Gunakan fitur ini untuk mendaftarkan banyak mahasiswa sekaligus.")
+        st.info("Format kolom: **id, name, division, university**")
+        file_mhs = st.file_uploader("Pilih file daftar mahasiswa", type=["csv", "xlsx"], key="import_mhs_bulk")
+
+        if file_mhs is not None:
+            try:
+                df_new = pd.read_csv(file_mhs) if file_mhs.name.endswith('.csv') else pd.read_excel(file_mhs)
+                st.write("Preview Data:")
+                st.dataframe(df_new.head())
+
+                if st.button("✅ Daftarkan Semua Mahasiswa di Atas"):
+                    success_count = 0
+                    for _, row in df_new.iterrows():
+                        s_id = int(row['id'])
+                        s_name = str(row['name'])
+                        s_div = str(row['division'])
+                        s_univ = str(row['university'])
+
+                        # 1. Masukkan ke tabel students dengan ID tetap dari Excel
+                        cur.execute("""
+                            INSERT INTO students (id, name, division, university)
+                            VALUES (%s, %s, %s, %s)
+                            ON DUPLICATE KEY UPDATE name=VALUES(name), division=VALUES(division), university=VALUES(university)
+                        """, (s_id, s_name, s_div, s_univ))
+
+                        # 2. Buat akun login otomatis (Username: vinix_nama)
+                        u_name = f"vinix_{s_name.lower().split()[0]}_{s_id}"
+                        u_pass = f"VNX-{s_id}X" # Password sederhana untuk massal
+                        
+                        cur.execute("""
+                            INSERT INTO users (username, password, role, student_id)
+                            VALUES (%s, %s, %s, %s)
+                            ON DUPLICATE KEY UPDATE username=VALUES(username)
+                        """, (u_name, u_pass, "mahasiswa", s_id))
+                        success_count += 1
+                    
+                    conn.commit()
+                    st.success(f"🚀 Berhasil mendaftarkan {success_count} mahasiswa! Angka Dashboard pasti sudah berubah.")
+                    st.balloons()
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Gagal import: {e}")
+
     # ======================
-    # TAMBAH MAHASISWA
+    # TAMBAH MAHASISWA (MANUAL)
     # ======================
     st.markdown("### ➕ Tambah Mahasiswa & Akun Login")
 
@@ -41,7 +89,7 @@ def mahasiswa_page():
         "",
         placeholder="contoh: Siti Nurjanah",
         label_visibility="collapsed",
-        key="input_nama" # Tambahkan key agar unik
+        key="input_nama" 
     )
     
     st.markdown('<div class="login-label">Divisi</div>', unsafe_allow_html=True)
@@ -52,11 +100,7 @@ def mahasiswa_page():
         key="input_divisi"
     )
     
-    # ==========================================
-    # 2. PERUBAHAN INPUT UNIVERSITAS (DI SINI)
-    # ==========================================
     st.markdown('<div class="login-label">Universitas</div>', unsafe_allow_html=True)
-    
     list_univ = get_list_universitas()
     
     pilihan_univ = st.selectbox(
@@ -68,7 +112,6 @@ def mahasiswa_page():
         key="select_univ"
     )
 
-    # Logika munculkan input manual jika pilihan "Input Manual" diklik
     universitas = ""
     if pilihan_univ == "➕ Input Manual (Tidak ada di daftar)":
         universitas = st.text_input(
@@ -101,34 +144,23 @@ def mahasiswa_page():
             password = generate_password(nama)
 
             try:
-                # simpan mahasiswa (MENGGUNAKAN VARIABEL UNIVERSITAS HASIL PILIHAN/INPUT)
                 cur.execute("""
                     INSERT INTO students (name, division, university)
                     VALUES (%s, %s, %s)
                 """, (nama, divisi, universitas))
                 
-                # Gunakan lastrowid atau fetch id sesuai database kamu
-                # Jika di MySQL/Postgres:
                 conn.commit()
                 cur.execute("SELECT LAST_INSERT_ID()")
                 student_id = cur.fetchone()[0]
 
-                # simpan akun login
                 cur.execute("""
                     INSERT INTO users (username, password, role, student_id)
                     VALUES (%s, %s, %s, %s)
                 """, (username, password, "mahasiswa", student_id))
 
                 conn.commit()
-
                 st.success("✅ Mahasiswa & akun login berhasil dibuat")
-
-                st.info(f"""
-👤 **Username** : `{username}`  
-🔑 **Password** : `{password}`  
-
-📌 Informasi ini dibagikan ke mahasiswa saat onboarding (WhatsApp).
-                """)
+                st.info(f"👤 **Username** : `{username}` | 🔑 **Password** : `{password}`")
 
             except Exception as e:
                 conn.rollback()
@@ -141,12 +173,7 @@ def mahasiswa_page():
     st.markdown("### 📋 Daftar Mahasiswa Terdaftar")
 
     cur.execute("""
-        SELECT 
-            s.id,
-            u.username,
-            s.name,
-            s.division,
-            s.university
+        SELECT s.id, u.username, s.name, s.division, s.university
         FROM students s
         JOIN users u ON s.id = u.student_id
         WHERE u.role = 'mahasiswa'
@@ -160,15 +187,6 @@ def mahasiswa_page():
         st.info("Belum ada mahasiswa terdaftar.")
         return
 
-    df = pd.DataFrame(
-        rows,
-        columns=["ID", "Username", "Nama", "Divisi", "Universitas"]
-    )
-
+    df = pd.DataFrame(rows, columns=["ID", "Username", "Nama", "Divisi", "Universitas"])
     df.insert(0, "No", range(1, len(df) + 1))
-
-    st.dataframe(
-        df[["No", "Username", "Nama", "Divisi", "Universitas"]],
-        use_container_width=True
-    )
-
+    st.dataframe(df[["No", "Username", "Nama", "Divisi", "Universitas"]], use_container_width=True)
