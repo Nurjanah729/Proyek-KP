@@ -8,4 +8,4 @@ matplotlib==3.10.8
 mysql-connector-python==9.5.0
 numpy==2.2.4
 joblib==1.5.2
-
+openpyxl
