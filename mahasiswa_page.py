@@ -93,6 +93,11 @@ st.markdown("""
         margin-top: 1rem;
         font-size: 14px;
     }
+    
+    /* Fix for form state persistence */
+    .stSelectbox div[data-baseweb="select"] {
+        z-index: 999 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -122,6 +127,17 @@ def mahasiswa_page():
 
     conn = get_db()
     cur = conn.cursor()
+
+    # Inisialisasi session state untuk form
+    if 'form_data' not in st.session_state:
+        st.session_state.form_data = {
+            'nama': '',
+            'divisi': 'Web Developer',
+            'universitas_selected': None,
+            'universitas_manual': ''
+        }
+    if 'submitted' not in st.session_state:
+        st.session_state.submitted = False
 
     # Navigasi Tab
     tab_list, tab_import, tab_manual = st.tabs([
@@ -188,46 +204,85 @@ def mahasiswa_page():
             c1, c2 = st.columns(2)
             
             with c1:
-                # NAMA LENGKAP dengan label jelas
+                # NAMA LENGKAP
                 st.markdown('<span class="custom-label required">Nama Lengkap</span>', unsafe_allow_html=True)
-                nama_m = st.text_input("", placeholder="Contoh: Budi Santoso", key="m_nama", label_visibility="collapsed")
+                nama_input = st.text_input(
+                    "", 
+                    placeholder="Contoh: Budi Santoso", 
+                    key="m_nama",
+                    label_visibility="collapsed",
+                    value=st.session_state.form_data['nama']
+                )
+                if nama_input != st.session_state.form_data['nama']:
+                    st.session_state.form_data['nama'] = nama_input
                 
-                # DIVISI dengan label jelas
+                # DIVISI
                 st.markdown('<span class="custom-label required">Divisi</span>', unsafe_allow_html=True)
-                div_m = st.selectbox("", ["Web Developer", "Data Science", "AI Engineer"], index=0, key="m_div", label_visibility="collapsed")
+                div_input = st.selectbox(
+                    "", 
+                    ["Web Developer", "Data Science", "AI Engineer"], 
+                    index=["Web Developer", "Data Science", "AI Engineer"].index(
+                        st.session_state.form_data['divisi']
+                    ) if st.session_state.form_data['divisi'] in ["Web Developer", "Data Science", "AI Engineer"] else 0,
+                    key="m_div",
+                    label_visibility="collapsed"
+                )
+                if div_input != st.session_state.form_data['divisi']:
+                    st.session_state.form_data['divisi'] = div_input
             
             with c2:
-                # UNIVERSITAS dengan label jelas
+                # UNIVERSITAS - menggunakan key yang unik
                 st.markdown('<span class="custom-label required">Universitas</span>', unsafe_allow_html=True)
                 univ_list = get_list_universitas()
-                univ_p = st.selectbox(
+                
+                # Temukan index yang sesuai dengan session state
+                default_index = 0
+                if st.session_state.form_data['universitas_selected']:
+                    try:
+                        default_index = univ_list.index(st.session_state.form_data['universitas_selected'])
+                    except:
+                        default_index = 0
+                
+                univ_selected = st.selectbox(
                     "", 
                     options=univ_list, 
-                    index=None, 
+                    index=default_index if default_index < len(univ_list) else 0,
                     placeholder="Pilih dari daftar...", 
-                    key="m_univ_s",
+                    key="m_univ_select",  # Key yang unik
                     label_visibility="collapsed"
                 )
                 
+                # Simpan ke session state
+                if univ_selected != st.session_state.form_data['universitas_selected']:
+                    st.session_state.form_data['universitas_selected'] = univ_selected
+                
                 # Input manual jika dipilih
-                if univ_p == "➕ Input Manual":
+                if univ_selected == "➕ Input Manual":
                     st.markdown('<div class="manual-input-box">', unsafe_allow_html=True)
                     st.markdown('<span class="custom-label">✏️ Input Nama Universitas Manual</span>', unsafe_allow_html=True)
-                    univ_m = st.text_input(
+                    univ_manual = st.text_input(
                         "", 
                         placeholder="Ketik nama universitas lengkap...", 
-                        key="m_univ_t",
-                        label_visibility="collapsed"
+                        key="m_univ_manual",
+                        label_visibility="collapsed",
+                        value=st.session_state.form_data['universitas_manual']
                     )
+                    if univ_manual != st.session_state.form_data['universitas_manual']:
+                        st.session_state.form_data['universitas_manual'] = univ_manual
+                    
                     st.caption("Pastikan nama universitas ditulis dengan benar dan lengkap")
                     st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Set universitas yang akan disimpan
+                    universitas_final = st.session_state.form_data['universitas_manual']
                 else:
-                    univ_m = univ_p
+                    universitas_final = univ_selected
+                    
                     # Tampilkan preview universitas yang dipilih
-                    if univ_m:
+                    if universitas_final and universitas_final != "➕ Input Manual":
                         st.markdown(f'''
                         <div class="info-box">
-                        ✅ <strong>Universitas terpilih:</strong> {univ_m}
+                        ✅ <strong>Universitas terpilih:</strong> {universitas_final}
                         </div>
                         ''', unsafe_allow_html=True)
             
@@ -240,42 +295,68 @@ def mahasiswa_page():
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
                 if st.button("💾 Simpan ke Database", key="btn_save_manual", type="primary", use_container_width=True):
-                    if not nama_m:
+                    # Validasi input
+                    if not st.session_state.form_data['nama']:
                         st.error("Nama lengkap wajib diisi")
-                    elif not univ_m:
-                        st.error("Universitas wajib diisi")
+                    elif not universitas_final or universitas_final == "➕ Input Manual":
+                        st.error("Universitas wajib diisi atau pilih dari daftar")
                     else:
                         # Simpan ke database
-                        cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama_m, div_m, univ_m))
-                        conn.commit()
-                        new_id = cur.lastrowid
-                        u, p = generate_credentials(nama_m, new_id)
-                        cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", (u, p, "mahasiswa", new_id))
-                        conn.commit()
-                        
-                        # Tampilkan hasil sukses
-                        st.success("✅ Data berhasil disimpan!")
-                        
-                        # Tampilkan detail dalam expander
-                        with st.expander("📋 Detail Pendaftaran", expanded=True):
-                            col_a, col_b, col_c = st.columns(3)
-                            with col_a:
-                                st.metric("ID Mahasiswa", new_id)
-                            with col_b:
-                                st.metric("Username", u)
-                            with col_c:
-                                st.metric("Password", p)
+                        try:
+                            cur.execute(
+                                "INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", 
+                                (st.session_state.form_data['nama'], st.session_state.form_data['divisi'], universitas_final)
+                            )
+                            conn.commit()
+                            new_id = cur.lastrowid
+                            u, p = generate_credentials(st.session_state.form_data['nama'], new_id)
+                            cur.execute(
+                                "INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", 
+                                (u, p, "mahasiswa", new_id)
+                            )
+                            conn.commit()
                             
-                            st.markdown(f"""
-                            **Data Mahasiswa:**
-                            - **Nama:** {nama_m}
-                            - **Divisi:** {div_m}
-                            - **Universitas:** {univ_m}
-                            """)
+                            # Tampilkan hasil sukses
+                            st.success("✅ Data berhasil disimpan!")
+                            st.session_state.submitted = True
                             
-                            # Tombol untuk reset form
-                            if st.button("➕ Tambah Data Baru", type="secondary"):
-                                st.rerun()
+                            # Tampilkan detail dalam expander
+                            with st.expander("📋 Detail Pendaftaran", expanded=True):
+                                col_a, col_b, col_c = st.columns(3)
+                                with col_a:
+                                    st.metric("ID Mahasiswa", new_id)
+                                with col_b:
+                                    st.metric("Username", u)
+                                with col_c:
+                                    st.metric("Password", p)
+                                
+                                st.markdown(f"""
+                                **Data Mahasiswa:**
+                                - **Nama:** {st.session_state.form_data['nama']}
+                                - **Divisi:** {st.session_state.form_data['divisi']}
+                                - **Universitas:** {universitas_final}
+                                """)
+                            
+                            # Reset form setelah submit berhasil
+                            st.session_state.form_data = {
+                                'nama': '',
+                                'divisi': 'Web Developer',
+                                'universitas_selected': None,
+                                'universitas_manual': ''
+                            }
+                            
+                        except Exception as e:
+                            st.error(f"Error saat menyimpan data: {str(e)}")
+                
+                # Tombol reset form
+                if st.button("🔄 Reset Form", key="btn_reset", type="secondary", use_container_width=True):
+                    st.session_state.form_data = {
+                        'nama': '',
+                        'divisi': 'Web Developer',
+                        'universitas_selected': None,
+                        'universitas_manual': ''
+                    }
+                    st.rerun()
 
     conn.close()
 
