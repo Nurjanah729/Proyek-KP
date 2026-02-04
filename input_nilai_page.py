@@ -5,11 +5,9 @@ from db import get_db
 def input_nilai_page():
     st.title("📝 Manajemen Nilai Mahasiswa")
     
-    tab1, tab2 = st.tabs(["📥 Import Massal (Spreadsheet)", "✍️ Input Manual"])
+    tab1, tab2 = st.tabs(["📥 Import Nilai Mahasiswa", "✍️ Input Nilai Mahasiswa"])
 
     with tab1:
-        st.subheader("Import Nilai dari Mentor")
-        st.info("Format kolom: student_id, name, module, score")
         
         uploaded_file = st.file_uploader("Pilih file Excel/CSV", type=["csv", "xlsx"], key="bulk_uploader")
 
@@ -24,7 +22,7 @@ def input_nilai_page():
                 st.write("Preview Data:")
                 st.dataframe(df.head())
 
-                if st.button("🚀 Sinkronkan Sekarang", use_container_width=True):
+                if st.button("Simpan Nilai Mahaiswa", use_container_width=True):
                     conn = get_db()
                     cur = conn.cursor()
                     
@@ -68,3 +66,4 @@ def input_nilai_page():
 
     with tab2:
         st.write("Gunakan Tab 1 untuk mengunggah 100+ data sekaligus.")
+
