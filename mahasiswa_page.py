@@ -52,6 +52,46 @@ st.markdown("""
         background-color: #003385 !important;
         box-shadow: 0 4px 12px rgba(0,69,173,0.2);
     }
+
+    /* Styling khusus untuk input manual - MEMPERJELAS TEKS */
+    .manual-input-container {
+        margin-top: 1rem;
+        padding: 1.5rem;
+        background-color: #F8F9FA;
+        border-radius: 12px;
+        border: 2px solid #E9ECEF;
+    }
+    .manual-input-container .stTextInput input {
+        background-color: #FFFFFF !important;
+        border: 2px solid #0045AD !important;
+        font-size: 16px !important;
+        color: #212529 !important;
+        padding: 12px 16px !important;
+    }
+    .manual-input-label {
+        font-weight: 600 !important;
+        color: #0045AD !important;
+        font-size: 1.1rem !important;
+        margin-bottom: 0.5rem !important;
+        display: block !important;
+    }
+    .manual-input-help {
+        color: #6C757D !important;
+        font-size: 0.9rem !important;
+        margin-top: 0.25rem !important;
+        font-style: italic !important;
+    }
+    
+    /* Styling untuk dropdown universitas */
+    .university-select-container {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Highlight untuk opsi "Input Manual" */
+    [data-baseweb="select"] div[role="option"]:contains("➕ Input Manual") {
+        color: #0045AD !important;
+        font-weight: 600 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -62,7 +102,8 @@ def get_list_universitas():
         list_univ = sorted(df['nama_universitas'].dropna().unique().tolist())
         list_univ.append("➕ Input Manual")
         return list_univ
-    except:
+    except Exception as e:
+        st.error(f"Error loading CSV: {e}")
         return ["➕ Input Manual"]
 
 def generate_credentials(nama, s_id):
@@ -141,18 +182,38 @@ def mahasiswa_page():
         
         # Grid Layout tanpa label teks atas
         c1, c2 = st.columns(2)
+        
         with c1:
             nama_m = st.text_input("", placeholder="Nama Lengkap", key="m_nama")
             div_m = st.selectbox("", ["Web Developer", "Data Science", "AI Engineer"], index=0, key="m_div")
         
         with c2:
             univ_list = get_list_universitas()
-            univ_p = st.selectbox("", options=univ_list, index=None, placeholder="Pilih Universitas", key="m_univ_s")
+            univ_p = st.selectbox("", options=univ_list, index=None, 
+                                 placeholder="🔍 Pilih Universitas dari daftar...", 
+                                 key="m_univ_s")
             
-            univ_m = st.text_input("", placeholder="Tulis Nama Universitas", key="m_univ_t") if univ_p == "➕ Input Manual" else univ_p
+            # PERBAIKAN UTAMA: Membuat input manual lebih jelas
+            if univ_p == "➕ Input Manual":
+                # Container khusus untuk input manual dengan styling jelas
+                st.markdown('<div class="manual-input-container">', unsafe_allow_html=True)
+                st.markdown('<span class="manual-input-label">✏️ Input Nama Universitas Manual</span>', unsafe_allow_html=True)
+                univ_m = st.text_input("", 
+                                      placeholder="Ketik nama universitas disini...", 
+                                      key="m_univ_t",
+                                      label_visibility="collapsed")
+                st.markdown('<span class="manual-input-help">Pastikan nama universitas ditulis dengan benar</span>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+            else:
+                univ_m = univ_p
+                # Tampilkan pesan jika universitas dipilih dari daftar
+                if univ_m:
+                    st.info(f"✅ Universitas dipilih: **{univ_m}**")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Simpan ke Database", key="btn_save_manual"):
+        
+        # Tombol dengan feedback yang lebih jelas
+        if st.button("Simpan ke Database", key="btn_save_manual", type="primary"):
             if nama_m and univ_m:
                 cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama_m, div_m, univ_m))
                 conn.commit()
@@ -160,8 +221,25 @@ def mahasiswa_page():
                 u, p = generate_credentials(nama_m, new_id)
                 cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", (u, p, "mahasiswa", new_id))
                 conn.commit()
-                st.success(f"Pendaftaran Berhasil. User: {u}")
+                
+                # Tampilkan hasil dengan lebih jelas
+                st.success("🎉 Pendaftaran Berhasil!")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("ID Mahasiswa", new_id)
+                with col2:
+                    st.metric("Username", u)
+                with col3:
+                    st.metric("Password", p)
+                    
+                # Tampilkan ringkasan data
+                st.info(f"""
+                **Ringkasan Data:**
+                - Nama: {nama_m}
+                - Divisi: {div_m}
+                - Universitas: {univ_m}
+                """)
             else:
-                st.warning("Mohon lengkapi seluruh data.")
+                st.warning("⚠️ Mohon lengkapi seluruh data yang diperlukan.")
 
     conn.close()
