@@ -28,54 +28,54 @@ def input_nilai_page():
                 st.write("Preview Data:")
                 st.dataframe(df_mentor.head(), use_container_width=True)
 
-            if st.button("🚀 Sinkronkan Semua Nilai", use_container_width=True):
-                conn = get_db()
-                cur = conn.cursor()
+        if st.button("🚀 Sinkronkan Semua Nilai", use_container_width=True):
+            conn = get_db()
+            cur = conn.cursor()
+            
+            try:
+                count_score = 0
+                count_new_student = 0
                 
-                try:
-                    count_score = 0
-                    count_new_student = 0
-                    
-                    # Ambil semua kolom yang ada di file upload
-                    cols = df_mentor.columns.tolist()
-            
-                    for _, row in df_mentor.iterrows():
-                        s_id = int(row['student_id'])
-                        m_num = int(row['module'])
-                        s_score = int(row['score'])
-            
-                        # 1. CEK: Apakah ID ini sudah ada di tabel students?
-                        cur.execute("SELECT id FROM students WHERE id = %s", (s_id,))
-                        exists = cur.fetchone()
-            
-                        # 2. JIKA BELUM ADA: Daftarkan otomatis ke tabel students
-                        if not exists:
-                            # Jika ada kolom 'name' di Excel gunakan itu, jika tidak gunakan placeholder
-                            s_name = row['name'] if 'name' in cols else f"Mahasiswa ID {s_id}"
-                            
-                            cur.execute("""
-                                INSERT INTO students (id, name, division, university)
-                                VALUES (%s, %s, %s, %s)
-                            """, (s_id, s_name, "Batch Import", "Mentor Source"))
-                            count_new_student += 1
-            
-                        # 3. INPUT NILAI ke module_scores
+                # Ambil semua kolom yang ada di file upload
+                cols = df_mentor.columns.tolist()
+        
+                for _, row in df_mentor.iterrows():
+                    s_id = int(row['student_id'])
+                    m_num = int(row['module'])
+                    s_score = int(row['score'])
+        
+                    # 1. CEK: Apakah ID ini sudah ada di tabel students?
+                    cur.execute("SELECT id FROM students WHERE id = %s", (s_id,))
+                    exists = cur.fetchone()
+        
+                    # 2. JIKA BELUM ADA: Daftarkan otomatis ke tabel students
+                    if not exists:
+                        # Jika ada kolom 'name' di Excel gunakan itu, jika tidak gunakan placeholder
+                        s_name = row['name'] if 'name' in cols else f"Mahasiswa ID {s_id}"
+                        
                         cur.execute("""
-                            INSERT INTO module_scores (student_id, module, score)
-                            VALUES (%s, %s, %s)
-                            ON DUPLICATE KEY UPDATE score = VALUES(score)
-                        """, (s_id, m_num, s_score))
-                        count_score += 1
-                    
-                    conn.commit()
-                    st.success(f"✅ Berhasil! {count_score} nilai masuk. {count_new_student} mahasiswa baru didaftarkan.")
-                    st.balloons()
-                    
-                except Exception as e:
-                    st.error(f"❌ Terjadi kesalahan: {e}")
-                finally:
-                    cur.close()
-                    conn.close()
+                            INSERT INTO students (id, name, division, university)
+                            VALUES (%s, %s, %s, %s)
+                        """, (s_id, s_name, "Batch Import", "Mentor Source"))
+                        count_new_student += 1
+        
+                    # 3. INPUT NILAI ke module_scores
+                    cur.execute("""
+                        INSERT INTO module_scores (student_id, module, score)
+                        VALUES (%s, %s, %s)
+                        ON DUPLICATE KEY UPDATE score = VALUES(score)
+                    """, (s_id, m_num, s_score))
+                    count_score += 1
+                
+                conn.commit()
+                st.success(f"✅ Berhasil! {count_score} nilai masuk. {count_new_student} mahasiswa baru didaftarkan.")
+                st.balloons()
+                
+            except Exception as e:
+                st.error(f"❌ Terjadi kesalahan: {e}")
+            finally:
+                cur.close()
+                conn.close()
 
             except Exception as e:
                 st.error(f"Gagal membaca file: {e}. Pastikan library 'openpyxl' sudah terinstall.")
@@ -133,6 +133,7 @@ def input_nilai_page():
         
         cur.close()
         conn.close()
+
 
 
 
