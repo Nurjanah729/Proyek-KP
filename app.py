@@ -10,8 +10,7 @@ from mahasiswa_page import mahasiswa_page
 from input_nilai_page import input_nilai_page 
 from analisis_nilai_page import analisis_nilai_page 
 from mahasiswa_dashboard import mahasiswa_dashboard 
-from db import get_db 
-from pengaturan import pengaturan  
+from db import get_db   
 
 
 
@@ -428,6 +427,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
