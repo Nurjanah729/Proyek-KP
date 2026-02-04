@@ -3,119 +3,51 @@ import pandas as pd
 from db import get_db
 
 def input_nilai_page():
-    # Header dengan Style Modern
-    st.markdown("""
-        <div style="background: linear-gradient(135deg, #0B3C8C, #1E40AF); padding:20px; border-radius:15px; margin-bottom:25px;">
-            <h2 style="color:white; margin:0;">📝 Input Nilai Modul</h2>
-            <p style="color:rgba(255,255,255,0.8); margin:0;">Kelola performa akademik mahasiswa secara presisi</p>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("### 🚀 Sinkronisasi Nilai Massal (Spreadsheet)")
+    st.info("Gunakan fitur ini untuk menginput nilai dari mentor secara otomatis.")
 
-    conn = get_db()
-    cur = conn.cursor()
+    # 1. Upload File dari Mentor
+    uploaded_file = st.file_uploader("Pilih File Spreadsheet (CSV atau Excel)", type=["csv", "xlsx"])
 
-    # =============================
-    # 1. Pilih Mahasiswa (Dalam Card)
-    # =============================
-    with st.container():
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        cur.execute("SELECT id, name, division, university FROM students ORDER BY name ASC")
-        students = cur.fetchall()
-        
-        if not students:
-            st.warning("⚠️ Belum ada data mahasiswa di database.")
-            return
+    if uploaded_file is not None:
+        try:
+            # Membaca file berdasarkan format
+            if uploaded_file.name.endswith('.csv'):
+                df_mentor = pd.read_csv(uploaded_file)
+            else:
+                df_mentor = pd.read_excel(uploaded_file)
 
-        student_map = {f"{s[1]} | {s[2]} ({s[3]})": s[0] for s in students}
-        selected_student = st.selectbox(
-            "Cari dan Pilih Mahasiswa",
-            options=list(student_map.keys()),
-            index=None,
-            placeholder="Ketik nama mahasiswa..."
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("#### 🔍 Preview Data Mentor")
+            st.dataframe(df_mentor.head(), use_container_width=True)
 
-    if not selected_student:
-        st.info("💡 Pilih mahasiswa terlebih dahulu untuk mulai menginput nilai.")
-        conn.close()
-        return
+            # Validasi Kolom (Pastikan ada kolom student_id, module, dan score)
+            required_columns = ['student_id', 'module', 'score']
+            if not all(col in df_mentor.columns for col in required_columns):
+                st.error(f"Format file salah! Pastikan ada kolom: {', '.join(required_columns)}")
+                return
 
-    student_id = student_map[selected_student]
-    nama_mhs = selected_student.split('|')[0].strip()
-
-    # =============================
-    # 2. Ambil nilai existing & Info Mahasiswa
-    # =============================
-    cur.execute("SELECT module, score FROM module_scores WHERE student_id = %s", (student_id,))
-    existing_scores = dict(cur.fetchall())
-
-    # Ringkasan Singkat (Metrics)
-    avg_now = sum(existing_scores.values()) / len(existing_scores) if existing_scores else 0
-    
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.success(f"📍 Sedang memproses: **{nama_mhs}**")
-    with col2:
-        st.metric("Rata-rata Saat Ini", f"{avg_now:.1f}")
-
-    st.markdown("---")
-
-    # =============================
-    # 3. Form Input Nilai (Modern Editor)
-    # =============================
-    df_input = pd.DataFrame({
-        "Modul": [f"Modul {i}" for i in range(1, 11)],
-        "Nilai": [existing_scores.get(i, 0) for i in range(1, 11)]
-    })
-
-    with st.form("form_input_nilai"):
-        st.markdown("##### 📊 Tabel Nilai Modul 1-10")
-        
-        # Data editor yang lebih profesional
-        edited_df = st.data_editor(
-            df_input,
-            column_config={
-                "Modul": st.column_config.TextColumn("Daftar Modul", disabled=True),
-                "Nilai": st.column_config.NumberColumn(
-                    "Nilai (0-100)",
-                    min_value=0,
-                    max_value=100,
-                    step=1,
-                    format="%d",
-                    help="Input angka langsung antara 0 sampai 100"
-                )
-            },
-            hide_index=True,
-            use_container_width=True
-        )
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # Tombol Simpan yang Menonjol
-        submit_btn = st.form_submit_button("💾 SIMPAN PERUBAHAN NILAI", use_container_width=True)
-
-        if submit_btn:
-            try:
-                # Hapus data lama
-                cur.execute("DELETE FROM module_scores WHERE student_id = %s", (student_id,))
-
-                # Insert data baru
-                for _, row in edited_df.iterrows():
-                    mod_num = int(row["Modul"].split(" ")[1])
-                    nilai = int(row["Nilai"])
-
-                    cur.execute(
-                        "INSERT INTO module_scores (student_id, module, score) VALUES (%s, %s, %s)",
-                        (student_id, mod_num, nilai)
-                    )
-
+            if st.button("📥 Sinkronkan ke Database Sekarang"):
+                conn = get_db()
+                cur = conn.cursor()
+                
+                counter = 0
+                for _, row in df_mentor.iterrows():
+                    # UPSERT Logic: Insert jika baru, Update jika sudah ada
+                    cur.execute("""
+                        INSERT INTO module_scores (student_id, module, score)
+                        VALUES (%s, %s, %s)
+                        ON DUPLICATE KEY UPDATE score = VALUES(score)
+                    """, (row['student_id'], row['module'], row['score']))
+                    counter += 1
+                
                 conn.commit()
+                cur.close()
+                conn.close()
+                
+                st.success(f"✅ Berhasil menyinkronkan {counter} data nilai mahasiswa!")
                 st.balloons()
-                st.success(f"✅ Nilai untuk {nama_mhs} berhasil diperbarui!")
-                st.rerun()
 
-            except Exception as e:
-                conn.rollback()
-                st.error(f"❌ Terjadi kesalahan: {e}")
+        except Exception as e:
+            st.error(f"Terjadi kesalahan saat membaca file: {e}")
 
-    conn.close()
+# Jangan lupa panggil fungsi ini di app.py Anda
