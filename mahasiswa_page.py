@@ -4,225 +4,175 @@ from db import get_db
 import random
 
 # ==========================================
-# 1. FUNGSI UNTUK MEMBACA CSV UNIVERSITAS
+# 1. FUNGSI UTILITY
 # ==========================================
 @st.cache_data
 def get_list_universitas():
     try:
-        # Membaca file universitas
         df = pd.read_csv("universitas_indonesia.csv")
-        
-        # Ambil data dari kolom 'nama_universitas'
         list_univ = sorted(df['nama_universitas'].dropna().unique().tolist())
-        
-        # Tambahkan opsi manual
         list_univ.append("➕ Input Manual (Tidak ada di daftar)")
         return list_univ
-    except Exception as e:
-        return [f"Error baca CSV: {e}", "➕ Input Manual (Tidak ada di daftar)"]
+    except Exception:
+        return ["➕ Input Manual (Tidak ada di daftar)"]
 
+def generate_username(nama, s_id=None):
+    base = nama.lower().split()[0]
+    suffix = s_id if s_id else random.randint(100, 999)
+    return f"vinix_{base}_{suffix}"
+
+def generate_password(s_id):
+    return f"VNX-{s_id}X"
+
+# ==========================================
+# 2. HALAMAN UTAMA
+# ==========================================
 def mahasiswa_page():
-    st.markdown("## 👨‍🎓 Kelola Mahasiswa")
-    st.markdown("Manajemen data mahasiswa magang & studi independen")
+    # Header Profesional
+    st.title("👨‍🎓 Manajemen Data Mahasiswa")
+    st.markdown("""
+        Pusat kendali data mahasiswa magang dan studi independen. 
+        Gunakan tab di bawah untuk navigasi antar fungsi.
+    """)
+    st.divider()
 
-    # ======================
-    # KONEKSI DB
-    # ======================
     conn = get_db()
     cur = conn.cursor()
 
-    # ==========================================
-    # 2. FITUR IMPORT MASSAL (TAMBAHAN FINAL)
-    # ==========================================
-    with st.expander("📥 Import Massal Mahasiswa (Excel/CSV)"):
-        st.markdown("Gunakan fitur ini untuk mendaftarkan banyak mahasiswa sekaligus.")
-        st.info("Format kolom: **id, name, division, university**")
-        file_mhs = st.file_uploader("Pilih file daftar mahasiswa", type=["csv", "xlsx"], key="import_bulk_final")
+    # Navigasi menggunakan Tabs agar interface tidak berantakan
+    tab1, tab2, tab3 = st.tabs(["📋 Daftar Mahasiswa", "📥 Import Massal", "➕ Tambah Manual"])
 
-        if file_mhs is not None:
-            try:
-                # Membaca file
-                if file_mhs.name.endswith('.csv'):
-                    df_new = pd.read_csv(file_mhs, sep=None, engine='python')
-                else:
-                    df_new = pd.read_excel(file_mhs)
-
-                # --- LOGIKA PERBAIKAN DATA MENUMPUK (IMAGE_293141) ---
-                # Jika data menumpuk di satu kolom, kita pecah manual berdasarkan koma
-                if len(df_new.columns) == 1:
-                    header_lama = df_new.columns[0]
-                    if ',' in header_lama:
-                        new_cols = [c.strip().lower() for c in header_lama.split(',')]
-                        df_new = df_new[header_lama].str.split(',', expand=True)
-                        df_new.columns = new_cols
-                else:
-                    # Bersihkan nama kolom jika sudah terpisah tapi ada spasi/huruf besar
-                    df_new.columns = [c.strip().lower() for c in df_new.columns]
-                
-                st.write("Preview Data (Sudah terbagi per kolom):")
-                st.dataframe(df_new.head())
-
-                if st.button("✅ Daftarkan Semua Mahasiswa di Atas", use_container_width=True):
-                    # Validasi apakah kolom 'id' ditemukan setelah proses pecah data
-                    if 'id' not in df_new.columns:
-                        st.error(f"Kolom 'id' tidak ditemukan! Kolom yang terbaca: {list(df_new.columns)}")
-                    else:
-                        success_count = 0
-                        for _, row in df_new.iterrows():
-                            # Konversi data ke tipe yang benar
-                            s_id = int(row['id'])
-                            s_name = str(row['name'])
-                            s_div = str(row['division'])
-                            s_univ = str(row['university'])
-
-                            # 1. Simpan ke tabel students agar Dashboard Update
-                            cur.execute("""
-                                INSERT INTO students (id, name, division, university)
-                                VALUES (%s, %s, %s, %s)
-                                ON DUPLICATE KEY UPDATE 
-                                    name=VALUES(name), 
-                                    division=VALUES(division), 
-                                    university=VALUES(university)
-                            """, (s_id, s_name, s_div, s_univ))
-
-                            # 2. Buat akun login otomatis (Username: vinix_nama_id)
-                            u_name = f"vinix_{s_name.lower().split()[0]}_{s_id}"
-                            u_pass = f"VNX-{s_id}X"
-                            
-                            cur.execute("""
-                                INSERT INTO users (username, password, role, student_id)
-                                VALUES (%s, %s, %s, %s)
-                                ON DUPLICATE KEY UPDATE username=VALUES(username)
-                            """, (u_name, u_pass, "mahasiswa", s_id))
-                            success_count += 1
-                        
-                        conn.commit()
-                        st.success(f"🚀 Berhasil mendaftarkan {success_count} mahasiswa! Angka Dashboard pasti sudah berubah.")
-                        st.balloons()
-                        st.rerun()
-            except Exception as e:
-                st.error(f"Gagal import: {e}")
-
-    # ======================
-    # 3. TAMBAH MAHASISWA (MANUAL)
-    # ======================
-    st.markdown("### ➕ Tambah Mahasiswa & Akun Login")
-
-    st.markdown('<div class="login-label">Nama Mahasiswa</div>', unsafe_allow_html=True)
-    nama = st.text_input(
-        "",
-        placeholder="contoh: Siti Nurjanah",
-        label_visibility="collapsed",
-        key="input_nama" 
-    )
-    
-    st.markdown('<div class="login-label">Divisi</div>', unsafe_allow_html=True)
-    divisi = st.selectbox(
-        "",
-        ["Web Developer", "Data Science", "AI Engineer"],
-        label_visibility="collapsed",
-        key="input_divisi"
-    )
-    
-    st.markdown('<div class="login-label">Universitas</div>', unsafe_allow_html=True)
-    list_univ = get_list_universitas()
-    
-    pilihan_univ = st.selectbox(
-        "",
-        options=list_univ,
-        index=None,
-        placeholder="🔍 Cari dan pilih universitas...",
-        label_visibility="collapsed",
-        key="select_univ"
-    )
-
-    universitas = ""
-    if pilihan_univ == "➕ Input Manual (Tidak ada di daftar)":
-        universitas = st.text_input(
-            "", 
-            placeholder="Masukkan nama universitas secara manual",
-            label_visibility="collapsed",
-            key="manual_univ_text"
-        )
-    else:
-        universitas = pilihan_univ
-
-    # Fungsi Generate (Tetap Ada)
-    def generate_username(nama):
-        if not nama: return ""
-        base = nama.lower().split()[0]
-        return f"vinix_{base}"
-
-    def generate_password(nama):
-        if not nama: return ""
-        prefix = nama.upper().split()[0][:3]
-        angka = random.randint(1000, 9999)
-        return f"VNX-{prefix}-{angka}"
-
-    if st.button("💾 Simpan Mahasiswa Manual"):
-        if not nama or not universitas:
-            st.warning("Nama dan Universitas wajib diisi")
+    # ------------------------------------------
+    # TAB 1: DAFTAR MAHASISWA
+    # ------------------------------------------
+    with tab1:
+        st.subheader("Data Mahasiswa Terdaftar")
+        cur.execute("""
+            SELECT s.id, u.username, s.name, s.division, s.university
+            FROM students s
+            JOIN users u ON s.id = u.student_id
+            WHERE u.role = 'mahasiswa'
+            ORDER BY s.id DESC
+        """)
+        rows = cur.fetchall()
+        
+        if not rows:
+            st.info("Saat ini belum ada data mahasiswa yang terdaftar di sistem.")
         else:
-            username = generate_username(nama)
-            password = generate_password(nama)
+            df_list = pd.DataFrame(rows, columns=["ID", "Username", "Nama Lengkap", "Divisi", "Universitas"])
+            # Tampilan table yang lebih bersih
+            st.dataframe(df_list, use_container_width=True, hide_index=True)
+            st.caption(f"Total: {len(df_list)} mahasiswa ditemukan.")
 
-            try:
-                # Simpan mahasiswa
-                cur.execute("""
-                    INSERT INTO students (name, division, university)
-                    VALUES (%s, %s, %s)
-                """, (nama, divisi, universitas))
+    # ------------------------------------------
+    # TAB 2: IMPORT MASSAL
+    # ------------------------------------------
+    with tab2:
+        st.subheader("Registrasi Massal via File")
+        st.markdown("Unggah file Excel atau CSV sesuai dengan format yang ditentukan.")
+        
+        with st.container(border=True):
+            st.warning("⚠️ **Format Kolom Wajib:** `id`, `name`, `division`, `university`")
+            file_mhs = st.file_uploader("Upload File (.csv, .xlsx)", type=["csv", "xlsx"])
+
+            if file_mhs:
+                try:
+                    if file_mhs.name.endswith('.csv'):
+                        df_new = pd.read_csv(file_mhs, sep=None, engine='python')
+                    else:
+                        df_new = pd.read_excel(file_mhs)
+
+                    # Auto-fix column naming
+                    df_new.columns = [c.strip().lower() for c in df_new.columns]
+
+                    # Logic Perbaikan Data Menumpuk
+                    if len(df_new.columns) == 1 and ',' in df_new.columns[0]:
+                        header_raw = df_new.columns[0]
+                        df_new = df_new[header_raw].str.split(',', expand=True)
+                        df_new.columns = [c.strip().lower() for c in header_raw.split(',')]
+
+                    st.write("**Preview Data:**")
+                    st.dataframe(df_new.head(3), use_container_width=True)
+
+                    if st.button("🚀 Proses Sinkronisasi Data", use_container_width=True, type="primary"):
+                        if 'id' not in df_new.columns:
+                            st.error("Kolom 'id' tidak ditemukan. Periksa kembali header file Anda.")
+                        else:
+                            success_count = 0
+                            for _, row in df_new.iterrows():
+                                s_id, s_name = int(row['id']), str(row['name'])
+                                s_div, s_univ = str(row['division']), str(row['university'])
+
+                                # DB Update
+                                cur.execute("""
+                                    INSERT INTO students (id, name, division, university)
+                                    VALUES (%s, %s, %s, %s)
+                                    ON DUPLICATE KEY UPDATE name=VALUES(name), division=VALUES(division), university=VALUES(university)
+                                """, (s_id, s_name, s_div, s_univ))
+
+                                u_name = generate_username(s_name, s_id)
+                                u_pass = generate_password(s_id)
+                                
+                                cur.execute("""
+                                    INSERT INTO users (username, password, role, student_id)
+                                    VALUES (%s, %s, %s, %s)
+                                    ON DUPLICATE KEY UPDATE username=VALUES(username)
+                                """, (u_name, u_pass, "mahasiswa", s_id))
+                                success_count += 1
+                            
+                            conn.commit()
+                            st.success(f"Berhasil menyinkronkan {success_count} data ke database.")
+                            st.balloons()
+                            st.rerun()
+                except Exception as e:
+                    st.error(f"Kesalahan sistem: {e}")
+
+    # ------------------------------------------
+    # TAB 3: TAMBAH MANUAL
+    # ------------------------------------------
+    with tab3:
+        st.subheader("Input Data Mahasiswa Baru")
+        with st.form("form_manual"):
+            col1, col2 = st.columns(2)
+            with col1:
+                nama = st.text_input("Nama Lengkap", placeholder="Masukkan nama mahasiswa")
+                divisi = st.selectbox("Divisi Penempatan", ["Web Developer", "Data Science", "AI Engineer"])
+            
+            with col2:
+                list_univ = get_list_universitas()
+                pilihan_univ = st.selectbox("Asal Universitas", options=list_univ, index=None, placeholder="Pilih Kampus...")
                 
-                conn.commit()
-                cur.execute("SELECT LAST_INSERT_ID()")
-                student_id = cur.fetchone()[0]
+                universitas = ""
+                if pilihan_univ == "➕ Input Manual (Tidak ada di daftar)":
+                    universitas = st.text_input("Nama Universitas (Manual)")
+                else:
+                    universitas = pilihan_univ
 
-                # Simpan akun login
-                cur.execute("""
-                    INSERT INTO users (username, password, role, student_id)
-                    VALUES (%s, %s, %s, %s)
-                """, (username, password, "mahasiswa", student_id))
+            submitted = st.form_submit_button("💾 Simpan ke Sistem", use_container_width=True)
 
-                conn.commit()
-                st.success("✅ Mahasiswa & akun login berhasil dibuat")
-                st.info(f"👤 **Username** : `{username}` | 🔑 **Password** : `{password}`")
-                st.rerun()
+            if submitted:
+                if not nama or not universitas:
+                    st.error("Mohon lengkapi semua bidang input.")
+                else:
+                    try:
+                        cur.execute("INSERT INTO students (name, division, university) VALUES (%s, %s, %s)", (nama, divisi, universitas))
+                        conn.commit()
+                        s_id = cur.lastrowid
+                        
+                        u_name = generate_username(nama, s_id)
+                        u_pass = generate_password(s_id)
 
-            except Exception as e:
-                conn.rollback()
-                st.error(f"Gagal menyimpan data: {e}")
+                        cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", 
+                                   (u_name, u_pass, "mahasiswa", s_id))
+                        conn.commit()
+                        
+                        st.success(f"Mahasiswa {nama} berhasil didaftarkan!")
+                        st.info(f"Akses Login — User: **{u_name}** | Pass: **{u_pass}**")
+                    except Exception as e:
+                        st.error(f"Gagal menyimpan: {e}")
 
-    # ======================
-    # 4. DAFTAR MAHASISWA
-    # ======================
-    st.markdown("---")
-    st.markdown("### 📋 Daftar Mahasiswa Terdaftar")
-
-    cur.execute("""
-        SELECT 
-            s.id,
-            u.username,
-            s.name,
-            s.division,
-            s.university
-        FROM students s
-        JOIN users u ON s.id = u.student_id
-        WHERE u.role = 'mahasiswa'
-        ORDER BY s.id ASC
-    """)
-
-    rows = cur.fetchall()
     conn.close()
 
-    if not rows:
-        st.info("Belum ada mahasiswa terdaftar.")
-    else:
-        df_list = pd.DataFrame(
-            rows,
-            columns=["ID", "Username", "Nama", "Divisi", "Universitas"]
-        )
-        df_list.insert(0, "No", range(1, len(df_list) + 1))
-        st.dataframe(
-            df_list[["No", "Username", "Nama", "Divisi", "Universitas"]],
-            use_container_width=True
-        )
+# Footer
+st.markdown("---")
+st.caption("Vinix Management System v2.0 - Dashboard Administrasi")
