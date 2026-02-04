@@ -76,9 +76,6 @@ def mahasiswa_page():
             st.info("Database masih kosong.")
 
     elif menu == "📤 Unggah Berkas CSV":
-        st.subheader("Registrasi Kolektif via CSV")
-        st.write("Pastikan CSV memiliki kolom: **id, name, division, university**")
-        
         # Key unik untuk uploader agar state tersimpan
         uploaded_file = st.file_uploader("Pilih file CSV Anda", type=["csv"], key="uploader_final_step")
 
@@ -114,4 +111,5 @@ def mahasiswa_page():
 
 if __name__ == "__main__":
     mahasiswa_page()
+
 
