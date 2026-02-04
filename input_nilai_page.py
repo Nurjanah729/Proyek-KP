@@ -1,4 +1,4 @@
-importimport streamlit as st
+import streamlit as st
 import pandas as pd
 from db import get_db
 
@@ -9,13 +9,13 @@ def input_nilai_page():
 
     with tab1:
         st.subheader("Import Nilai dari Mentor")
-        st.info("Format kolom Excel/CSV: student_id, name, module, score")
+        st.info("Format kolom: student_id, name, module, score")
         
-        uploaded_file = st.file_uploader("Pilih file", type=["csv", "xlsx"])
+        uploaded_file = st.file_uploader("Pilih file Excel/CSV", type=["csv", "xlsx"], key="bulk_uploader")
 
         if uploaded_file is not None:
             try:
-                # Membaca file
+                # Membaca file berdasarkan format
                 if uploaded_file.name.endswith('.csv'):
                     df = pd.read_csv(uploaded_file)
                 else:
@@ -24,7 +24,7 @@ def input_nilai_page():
                 st.write("Preview Data:")
                 st.dataframe(df.head())
 
-                if st.button("🚀 Sinkronkan Semua Nilai & Mahasiswa"):
+                if st.button("🚀 Sinkronkan Sekarang", use_container_width=True):
                     conn = get_db()
                     cur = conn.cursor()
                     
@@ -32,13 +32,13 @@ def input_nilai_page():
                     c_student = 0
                     
                     for _, row in df.iterrows():
-                        # Membersihkan data dari teks (misal: 'S001' jadi 1, 'Modul 1' jadi 1)
-                        s_id = int(str(row['student_id']).replace('S', '').replace('s', ''))
-                        m_num = int(str(row['module']).replace('Modul ', '').replace('modul ', ''))
+                        # Membersihkan data dari teks (S001 -> 1, Modul 1 -> 1)
+                        s_id = int(str(row['student_id']).upper().replace('S', ''))
+                        m_num = int(str(row['module']).lower().replace('modul ', '').strip())
                         s_score = int(row['score'])
-                        s_name = str(row['name']) if 'name' in df.columns else f"Mahasiswa ID {s_id}"
+                        s_name = str(row['name']) if 'name' in df.columns else f"Mahasiswa {s_id}"
 
-                        # 1. Pastikan mahasiswa terdaftar di tabel students agar Dashboard update
+                        # 1. Daftarkan ke tabel students agar total di Dashboard naik
                         cur.execute("SELECT id FROM students WHERE id = %s", (s_id,))
                         if not cur.fetchone():
                             cur.execute("""
@@ -47,7 +47,7 @@ def input_nilai_page():
                             """, (s_id, s_name, "Batch Import", "Mentor Source"))
                             c_student += 1
 
-                        # 2. Input/Update Nilai
+                        # 2. Simpan Nilai
                         cur.execute("""
                             INSERT INTO module_scores (student_id, module, score)
                             VALUES (%s, %s, %s)
@@ -59,7 +59,7 @@ def input_nilai_page():
                     cur.close()
                     conn.close()
                     
-                    st.success(f"✅ Selesai! {c_score} nilai masuk & {c_student} mahasiswa baru terdaftar.")
+                    st.success(f"✅ Berhasil! {c_score} nilai masuk & {c_student} mahasiswa baru terdaftar.")
                     st.balloons()
                     st.rerun()
 
@@ -67,4 +67,4 @@ def input_nilai_page():
                 st.error(f"❌ Terjadi kesalahan: {e}")
 
     with tab2:
-        st.write("Gunakan Tab 1 untuk update massal 100+ mahasiswa sekaligus.")
+        st.write("Gunakan Tab 1 untuk mengunggah 100+ data sekaligus.")
