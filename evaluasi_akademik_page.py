@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px # Menggunakan Plotly untuk Grafik Donat
 from db import get_db
 from ml_model import run_analysis
 
 def evaluasi_akademik_page():
-    # Style agar tampilan dashboard terlihat premium dan bersih
+    # Style Dashboard
     st.markdown("""
         <style>
         div[data-testid="stMetricValue"] { color: #FFCC00 !important; font-size: 28px; }
@@ -15,7 +15,7 @@ def evaluasi_akademik_page():
     """, unsafe_allow_html=True)
 
     st.title("📑 Laporan Evaluasi Akademik")
-    st.write("Analisis Kesiapan Proyek Akhir Berbasis Machine Learning - PT Vinix Seven Aurum")
+    st.write("Analisis Performa Mahasiswa Berbasis Machine Learning - PT Vinix Seven Aurum")
     st.divider()
 
     conn = get_db()
@@ -38,14 +38,11 @@ def evaluasi_akademik_page():
             # Memanggil fungsi analisis Random Forest
             prediction, confidence, weak_mods, avg_score = run_analysis(student_scores)
             
-            # Penentuan Hasil Analisis (Rekomendasi Sistem)
-            hasil_analisis = "✅ Siap Lanjut Proyek" if prediction in ["Sangat Baik", "Baik"] else "⚠️ Perlu Bimbingan"
-            
-            # Hanya menyimpan kolom yang Anda minta untuk tabel
+            # Menyimpan data sesuai permintaan tabel (Hanya 3 kolom)
             summary_list.append({
                 "Nama Mahasiswa": student_name, 
                 "Rata-rata Nilai": avg_score,
-                "Hasil Analisis": hasil_analisis
+                "Hasil Analisis": prediction # Menggunakan Label ML asli: Sangat Baik, Baik, dsb.
             })
 
     df_final = pd.DataFrame(summary_list)
@@ -57,7 +54,8 @@ def evaluasi_akademik_page():
     
     col1.metric("Data Mahasiswa Terproses", f"{len(df_final)} Orang")
     
-    siap = len(df_final[df_final["Hasil Analisis"] == "✅ Siap Lanjut Proyek"])
+    # Kesiapan Proyek Akhir (Berdasarkan label Sangat Baik & Baik)
+    siap = len(df_final[df_final["Hasil Analisis"].isin(["Sangat Baik", "Baik"])])
     persen_siap = int((siap/len(df_final))*100) if len(df_final) > 0 else 0
     col2.metric("Kesiapan Proyek Akhir", f"{persen_siap}%")
     
@@ -66,19 +64,34 @@ def evaluasi_akademik_page():
     st.divider()
 
     # ==========================================
-    # BAGIAN TABEL (HANYA 3 KOLOM SESUAI PERMINTAAN)
+    # BAGIAN TABEL & GRAFIK DONUT
     # ==========================================
-    st.subheader("📋 Ringkasan Hasil Evaluasi")
-    st.dataframe(df_final, use_container_width=True, hide_index=True)
+    col_left, col_right = st.columns([1.5, 1])
 
-    # ==========================================
-    # VISUALISASI PENDUKUNG
-    # ==========================================
-    st.subheader("📊 Grafik Kesiapan")
-    counts = df_final['Hasil Analisis'].value_counts()
-    fig, ax = plt.subplots(figsize=(8, 2))
-    counts.plot(kind='barh', color=['#0B3C8C', '#FFD84D'], ax=ax)
-    ax.set_xlabel("Jumlah Mahasiswa")
-    st.pyplot(fig)
+    with col_left:
+        st.subheader("📋 Ringkasan Hasil Evaluasi")
+        st.dataframe(df_final, use_container_width=True, hide_index=True)
+
+    with col_right:
+        st.subheader("📊 Distribusi Performa")
+        # Membuat Grafik Donat menggunakan Plotly
+        fig = px.pie(
+            df_final, 
+            names='Hasil Analisis', 
+            hole=0.5,
+            color='Hasil Analisis',
+            color_discrete_map={
+                'Sangat Baik': '#00CC96', 
+                'Baik': '#636EFA', 
+                'Cukup': '#FECB52', 
+                'Kurang': '#EF553B'
+            }
+        )
+        fig.update_layout(
+            showlegend=True, 
+            margin=dict(t=0, b=0, l=0, r=0),
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     conn.close()
