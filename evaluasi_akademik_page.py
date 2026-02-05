@@ -5,14 +5,12 @@ from db import get_db
 from ml_model import run_analysis
 
 def evaluasi_akademik_page():
-    # Style Dashboard agar bersih
+    # Style Dashboard agar bersih dan fokus pada 2 kolom metrik
     st.markdown("""
         <style>
         div[data-testid="stMetricValue"] { color: #FFCC00 !important; font-size: 28px; }
         .stDataFrame { border: 1px solid #E2E8F0; border-radius: 10px; }
         h1, h2, h3 { color: #0B3C8C !important; }
-        /* Menghilangkan border pada grafik plotly */
-        .js-plotly-plot { border: none !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -36,23 +34,27 @@ def evaluasi_akademik_page():
         
         if not student_scores.empty:
             student_scores.columns = ['Modul', 'Nilai']
+            # Memanggil fungsi analisis Random Forest
             prediction, confidence, weak_mods, avg_score = run_analysis(student_scores)
             
             summary_list.append({
                 "Nama Mahasiswa": student_name, 
                 "Rata-rata Nilai": avg_score,
-                "Hasil Analisis": prediction
+                "Hasil Analisis": prediction # Menggunakan label ML asli: Sangat Baik, Baik, dsb.
             })
 
     df_final = pd.DataFrame(summary_list)
 
-    # --- METRICS ---
-    col1, col2, col3 = st.columns(3)
+    # --- METRICS (Hanya 2 Kolom: Data Terproses & Kesiapan Proyek) ---
+    col1, col2 = st.columns(2)
+    
+    # 1. Data Mahasiswa Terproses
     col1.metric("Data Mahasiswa Terproses", f"{len(df_final)} Orang")
+    
+    # 2. Kesiapan Proyek Akhir
     siap = len(df_final[df_final["Hasil Analisis"].isin(["Sangat Baik", "Baik"])])
     persen_siap = int((siap/len(df_final))*100) if len(df_final) > 0 else 0
     col2.metric("Kesiapan Proyek Akhir", f"{persen_siap}%")
-    col3.metric("Rerata Nilai Angkatan", round(df_final["Rata-rata Nilai"].mean(), 1))
 
     st.divider()
 
@@ -61,10 +63,12 @@ def evaluasi_akademik_page():
 
     with col_left:
         st.subheader("📋 Ringkasan Hasil Evaluasi")
+        # Tabel dengan 3 kolom sesuai instruksi Anda sebelumnya
         st.dataframe(df_final, use_container_width=True, hide_index=True)
 
     with col_right:
         st.subheader("📊 Distribusi Performa")
+        # Grafik Donut dengan legenda teks gelap agar terlihat jelas
         fig = px.pie(
             df_final, 
             names='Hasil Analisis', 
@@ -78,33 +82,21 @@ def evaluasi_akademik_page():
             }
         )
         
-        # KUNCI UNTUK MENGHILANGKAN WARNA HITAM:
-        # --- PERBAIKAN STRUKTUR: GABUNGKAN SEMUA DALAM SATU UPDATE LAYOUT ---
         fig.update_layout(
             showlegend=True,
-            paper_bgcolor='rgba(0,0,0,0)', # Menghilangkan background hitam
+            paper_bgcolor='rgba(0,0,0,0)', 
             plot_bgcolor='rgba(0,0,0,0)',
             margin=dict(t=10, b=10, l=10, r=10),
-            
-            # Pengaturan Legend agar teks "Good" berwarna gelap dan terlihat
             legend=dict(
                 orientation="h", 
                 yanchor="bottom", 
                 y=-0.3, 
                 xanchor="center", 
                 x=0.5,
-                font=dict(
-                    family="sans-serif",
-                    size=12,
-                    color="#1F2937" # Warna abu-abu gelap agar kontras dengan latar belakang
-                )
+                font=dict(color="#1F2937") # Teks "Good" dsb berwarna gelap
             )
         )
         
-        # Tampilkan grafik ke aplikasi
         st.plotly_chart(fig, use_container_width=True)
 
-    # Tutup koneksi database
     conn.close()
-
-
