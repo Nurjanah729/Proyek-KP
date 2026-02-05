@@ -40,7 +40,7 @@ def mahasiswa_page():
         if res:
             # Konversi ke DataFrame untuk tampilan tabel yang rapi
             df_display = pd.DataFrame(res, columns=["ID", "Nama", "Divisi", "Universitas"])
-            
+            df_display = df_display.sort_values(by="ID", ascending=True)
             # Tampilkan tabel
             st.dataframe(df_display, use_container_width=True, hide_index=True)
         else:
@@ -190,6 +190,7 @@ def mahasiswa_page():
             except Exception as e:
                 st.error(f"Gagal membaca file CSV: {e}")
     
+
 
 
 
