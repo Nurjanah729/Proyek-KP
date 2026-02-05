@@ -217,26 +217,27 @@ def mahasiswa_dashboard(student_id):
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df_display, use_container_width=True, hide_index=True)
     
-        # Fitur Download dan Cetak
-        col_dl1, col_dl2 = st.columns([1, 4])
+    # Fitur Download dan Cetak
+    col_dl1, col_dl2 = st.columns([1, 4])
         
-        with col_dl1:
+    with col_dl1:
             # Konversi ke CSV
-            csv = df_display.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download CSV",
-                data=csv,
-                file_name=f'Nilai_{nama.replace(" ", "_")}.csv',
-                mime='text/csv',
-                type="primary"
+        csv = df_display.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download CSV",
+            data=csv,
+            file_name=f'Nilai_{nama.replace(" ", "_")}.csv',
+            mime='text/csv',
+            type="primary"
             )
         
-        with col_dl2:
-            if st.button("🖨️ Cetak / Simpan PDF"):
-                st.info("💡 Tips: Gunakan **Ctrl + P** (Windows) atau **Cmd + P** (Mac) untuk menyimpan halaman ini sebagai PDF.")
+    with col_dl2:
+        if st.button("🖨️ Cetak / Simpan PDF"):
+            st.info("💡 Tips: Gunakan **Ctrl + P** (Windows) atau **Cmd + P** (Mac) untuk menyimpan halaman ini sebagai PDF.")
                 # Trigger print otomatis di browser
-                st.components.v1.html("<script>window.print();</script>", height=0)
+            st.components.v1.html("<script>window.print();</script>", height=0)
     
     
     
     
+
