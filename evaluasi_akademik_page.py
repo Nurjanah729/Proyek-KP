@@ -79,15 +79,30 @@ def evaluasi_akademik_page():
         )
         
         # KUNCI UNTUK MENGHILANGKAN WARNA HITAM:
+        # --- PERBAIKAN STRUKTUR UPDATE LAYOUT ---
         fig.update_layout(
             showlegend=True,
-            paper_bgcolor='rgba(0,0,0,0)', # Membuat background transparan
-            plot_bgcolor='rgba(0,0,0,0)',  # Membuat area plot transparan
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)',  
             margin=dict(t=10, b=10, l=10, r=10),
-            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-            font=dict(color="#1F2937") # Mengubah warna teks legenda agar terbaca di background terang
+            # Pengaturan Legend digabung di sini agar teks "Good" terlihat
+            legend=dict(
+                orientation="h", 
+                yanchor="bottom", 
+                y=-0.3, 
+                xanchor="center", 
+                x=0.5,
+                font=dict(
+                    family="sans-serif",
+                    size=12,
+                    color="#1F2937" # Warna gelap agar terlihat jelas
+                )
+            )
         )
         
+        # Tampilkan chart setelah layout diatur
         st.plotly_chart(fig, use_container_width=True)
 
-    conn.close()
+    # Tutup koneksi database di luar kolom/if
+    conn.close()close()
+
