@@ -20,7 +20,7 @@ def mahasiswa_page():
 
     menu = st.radio(
         "Pilih Menu:",
-        ["📊 Mahasiswa Terdaftar", "📝 Input Mahasiswa", "📤 Unggah Data CSV"],
+        ["📊 Mahasiswa Terdaftar", "📝 Input Mahasiswa", "📤 Unggah Data "],
         horizontal=True
     )
 
@@ -31,7 +31,7 @@ def mahasiswa_page():
     # TAMPILAN MAHASISWA TERDAFTAR (TAMBAHKAN INI)
     # =========================
     if menu == "📊 Mahasiswa Terdaftar":
-        st.header("Daftar Mahasiswa Terdaftar")
+        st.header("Daftar Mahasiswa")
         
         # Ambil data dari database
         cur.execute("SELECT id, name, division, university FROM students ORDER BY id DESC")
@@ -41,19 +41,13 @@ def mahasiswa_page():
             # Konversi ke DataFrame untuk tampilan tabel yang rapi
             df_display = pd.DataFrame(res, columns=["ID", "Nama", "Divisi", "Universitas"])
             
-            # Tampilkan metrik singkat
-            st.metric("Total Mahasiswa", len(df_display))
-            
             # Tampilkan tabel
             st.dataframe(df_display, use_container_width=True, hide_index=True)
         else:
             st.info("Belum ada mahasiswa yang terdaftar.")
 
     # Ubah 'if' di bawah ini menjadi 'elif' agar menyambung
-    elif menu == "📝 Input Mahasiswa":
-        st.header("Input Data Mahasiswa")
-        # ... sisanya tetap sama ...
-
+    
     # =========================
     # INPUT MAHASISWA
     # =========================
@@ -142,8 +136,8 @@ def mahasiswa_page():
     # =========================
     # DATA MAHASISWA
     # =========================
-    elif menu == "📤 Unggah Data CSV":
-        st.header("Unggah Data CSV Mahasiswa")
+    elif menu == "📤 Unggah Data ":
+        st.header("Unggah Data Mahasiswa")
     
         uploaded_file = st.file_uploader(
             "Pilih file CSV",
@@ -196,4 +190,5 @@ def mahasiswa_page():
             except Exception as e:
                 st.error(f"Gagal membaca file CSV: {e}")
     
+
 
