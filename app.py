@@ -12,6 +12,7 @@ from analisis_nilai_page import analisis_nilai_page
 from mahasiswa_dashboard import mahasiswa_dashboard 
 from db import get_db   
 from pengaturan import pengaturan_page
+from evaluasi_akademik_page import evaluasi_akademik_page
 
 
 # ====================== # PAGE CONFIG # ====================== 
@@ -377,7 +378,7 @@ def admin_dashboard():
         st.markdown("## ⚙️ Admin Panel")
         menu = st.radio(
             "Navigasi",
-            ["📊 Dashboard", "👨‍🎓 Kelola Mahasiswa", "📝 Input Nilai", "🤖 Analisis Nilai"]
+            ["📊 Dashboard", "👨‍🎓 Kelola Mahasiswa", "📝 Input Nilai", "🤖 Evaluasi Akademik"]
         )
         st.markdown("---")
         if st.button("🔓 Logout"):
@@ -407,9 +408,8 @@ def admin_dashboard():
         mahasiswa_page()
     elif menu == "📝 Input Nilai":
         input_nilai_page()
-    elif menu == "🤖 Analisis Nilai":
-        analisis_nilai_page()
-
+    elif menu == "🤖 Evaluasi Akademik":
+        evaluasi_akademik_page()
 # ======================
 # MAIN
 # ======================
@@ -427,6 +427,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
