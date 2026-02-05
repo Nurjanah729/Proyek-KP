@@ -43,6 +43,20 @@ def generate_credentials(nama, s_id):
 # 2. FUNGSI UTAMA (FIX CSV & IMPORT)
 # ==========================================
 def mahasiswa_page():
+    st.markdown("""
+        <style>
+        /* Memperbaiki teks di sidebar/menu agar terlihat jelas */
+        .st-emotion-cache-10trblm { color: #1F2937 !important; } 
+        
+        /* Styling untuk form input manual */
+        .stForm {
+            background-color: #F8FAFC;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #E2E8F0;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     st.title("👨‍🎓 Panel Pendaftaran Mahasiswa")
     st.divider()
 
@@ -108,4 +122,5 @@ def mahasiswa_page():
 
 if __name__ == "__main__":
     mahasiswa_page()
+
 
