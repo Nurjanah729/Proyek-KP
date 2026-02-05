@@ -56,11 +56,33 @@ def mahasiswa_page():
     st.divider()
 
     # Navigasi tetap di tempat
-    menu = st.radio("Pilih Menu:", ["📊 Database Mahasiswa", "📤 Unggah Berkas CSV"], 
+    menu = st.radio("Pilih Menu:", ["📊 Mahasiswa Terdaftar", "📝 Input Mahasiswa", "📤 Unggah Data Mahasiswa"], 
                     horizontal=True, key="nav_final_stable")
 
     conn = get_db()
     cur = conn.cursor()
+
+    if menu == "📝 Input Mahasiswa":
+    st.subheader("Registrasi Mahasiswa")
+        col1, col2 = st.columns(2)
+        with col1:
+            m_id = st.text_input("ID Mahasiswa (NIM)")
+            m_nama = st.text_input("Nama Lengkap")
+        with col2:
+            m_div = st.selectbox("Divisi", ["AI Engineering", "Web Development", "Data Science"])
+            m_univ = st.text_input("Asal Universitas")
+        
+        if st.form_submit_button("Simpan Mahasiswa"):
+            if m_id and m_nama:
+                uname, upass = generate_credentials(m_nama, m_id)
+                cur.execute("INSERT INTO students (id, name, division, university) VALUES (%s, %s, %s, %s)", 
+                           (m_id, m_nama, m_div, m_univ))
+                cur.execute("INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)", 
+                           (uname, upass, "mahasiswa", m_id))
+                conn.commit()
+                st.success(f"✅ Tersimpan! Username: {uname}")
+            else:
+                st.error("ID dan Nama wajib diisi!")
 
     if menu == "📤 Unggah Berkas CSV":
         st.subheader("Registrasi Kolektif via CSV")
@@ -117,6 +139,7 @@ def mahasiswa_page():
 
 if __name__ == "__main__":
     mahasiswa_page()
+
 
 
 
