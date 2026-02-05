@@ -31,38 +31,45 @@ def mahasiswa_page():
     if menu == "📝 Input Mahasiswa":
         st.header("Input Data Mahasiswa")
         
-        # Form input
+        # Form input - SEMUA FIELD HARUS DI LUAR CONDITIONAL
         m_id = st.text_input("ID Mahasiswa (NIM)*", placeholder="Contoh: 12345678")
         m_nama = st.text_input("Nama Lengkap*", placeholder="Contoh: Ahmad Budi")
         m_div = st.selectbox("Divisi*", ["Pilih Divisi", "AI Engineering", "Web Development", "Data Science", "Mobile Development", "UI/UX Design"])
         
-        # Universitas - SEDERHANA: Radio button untuk pilihan
+        # Universitas - FIX: Buat semua element terlihat
         st.write("**Asal Universitas***")
-        pilihan_univ = st.radio(
-            "Pilih opsi:",
-            ["Pilih dari daftar", "Input manual"],
-            horizontal=True
+        
+        # Gunakan selectbox untuk pilihan
+        pilihan_univ_type = st.selectbox(
+            "Pilih cara input universitas:",
+            ["Pilih dari daftar universitas", "Input manual nama universitas"]
         )
         
         final_univ = ""
         
-        if pilihan_univ == "Pilih dari daftar":
+        # TAMPILKAN SELALU, tidak conditional
+        if pilihan_univ_type == "Pilih dari daftar universitas":
             if universitas_list:
-                selected = st.selectbox("Pilih Universitas:", ["Pilih..."] + universitas_list)
-                if selected != "Pilih...":
+                selected = st.selectbox("Pilih Universitas:", ["Pilih universitas..."] + universitas_list)
+                if selected != "Pilih universitas...":
                     final_univ = selected
             else:
                 st.warning("Daftar universitas tidak tersedia")
-                final_univ = st.text_input("Masukkan nama universitas:", placeholder="Nama universitas")
-        else:
-            final_univ = st.text_input("Masukkan nama universitas:", placeholder="Nama universitas")
+        else:  # Input manual
+            final_univ = st.text_input("Masukkan nama universitas:", placeholder="Contoh: Universitas ABC")
         
         st.caption("*Wajib diisi")
         
         if st.button("💾 Simpan Data", type="primary"):
             # Validasi
-            if not m_id or not m_nama or m_div == "Pilih Divisi" or not final_univ:
-                st.error("Harap isi semua field yang wajib!")
+            if not m_id:
+                st.error("ID Mahasiswa wajib diisi!")
+            elif not m_nama:
+                st.error("Nama Lengkap wajib diisi!")
+            elif m_div == "Pilih Divisi":
+                st.error("Divisi wajib dipilih!")
+            elif not final_univ:
+                st.error("Asal Universitas wajib diisi!")
             else:
                 # Cek duplikasi
                 cur.execute("SELECT id FROM students WHERE id = %s", (m_id,))
@@ -75,18 +82,22 @@ def mahasiswa_page():
                     password = f"VNX-{m_id}X"
                     
                     # Insert ke database
-                    cur.execute(
-                        "INSERT INTO students (id, name, division, university) VALUES (%s, %s, %s, %s)",
-                        (m_id, m_nama, m_div, final_univ)
-                    )
-                    cur.execute(
-                        "INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)",
-                        (username, password, "mahasiswa", m_id)
-                    )
-                    conn.commit()
-                    
-                    st.success("✅ Data berhasil disimpan!")
-                    st.info(f"**Username:** {username} | **Password:** {password}")
+                    try:
+                        cur.execute(
+                            "INSERT INTO students (id, name, division, university) VALUES (%s, %s, %s, %s)",
+                            (m_id, m_nama, m_div, final_univ)
+                        )
+                        cur.execute(
+                            "INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)",
+                            (username, password, "mahasiswa", m_id)
+                        )
+                        conn.commit()
+                        
+                        st.success("✅ Data berhasil disimpan!")
+                        st.info(f"**Username:** {username}")
+                        st.info(f"**Password:** {password}")
+                    except Exception as e:
+                        st.error(f"Gagal menyimpan: {e}")
     
     elif menu == "📤 Unggah Data CSV":
         st.header("Unggah Data CSV")
@@ -97,7 +108,7 @@ def mahasiswa_page():
             try:
                 df = pd.read_csv(uploaded_file)
                 st.write("Preview data:")
-                st.dataframe(df)
+                st.dataframe(df.head())
                 
                 if st.button("💾 Simpan Semua Data", type="primary"):
                     success = 0
@@ -111,21 +122,26 @@ def mahasiswa_page():
                             suniv = str(row.get('university', '')).strip()
                             
                             if sid and sname and sdiv and suniv:
-                                # Generate credentials
-                                nama_clean = str(sname).lower().split()[0].replace(" ", "_")
-                                username = f"vinix_{nama_clean}_{sid}"
-                                password = f"VNX-{sid}X"
-                                
-                                # Insert ke database
-                                cur.execute(
-                                    "INSERT INTO students (id, name, division, university) VALUES (%s, %s, %s, %s)",
-                                    (sid, sname, sdiv, suniv)
-                                )
-                                cur.execute(
-                                    "INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)",
-                                    (username, password, "mahasiswa", sid)
-                                )
-                                success += 1
+                                # Cek duplikasi
+                                cur.execute("SELECT id FROM students WHERE id = %s", (sid,))
+                                if not cur.fetchone():
+                                    # Generate credentials
+                                    nama_clean = str(sname).lower().split()[0].replace(" ", "_")
+                                    username = f"vinix_{nama_clean}_{sid}"
+                                    password = f"VNX-{sid}X"
+                                    
+                                    # Insert ke database
+                                    cur.execute(
+                                        "INSERT INTO students (id, name, division, university) VALUES (%s, %s, %s, %s)",
+                                        (sid, sname, sdiv, suniv)
+                                    )
+                                    cur.execute(
+                                        "INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)",
+                                        (username, password, "mahasiswa", sid)
+                                    )
+                                    success += 1
+                                else:
+                                    failed += 1
                             else:
                                 failed += 1
                         except:
@@ -134,10 +150,10 @@ def mahasiswa_page():
                     conn.commit()
                     st.success(f"✅ {success} data berhasil disimpan")
                     if failed > 0:
-                        st.warning(f"⚠️ {failed} data gagal")
+                        st.warning(f"⚠️ {failed} data gagal (duplikat atau data tidak lengkap)")
                     
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Error membaca CSV: {e}")
     
     else:  # Mahasiswa Terdaftar
         st.header("Data Mahasiswa Terdaftar")
