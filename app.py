@@ -447,7 +447,7 @@ def admin_dashboard():
         mahasiswa_page()
     elif menu == "📝 Input Nilai":
         input_nilai_page()
-    elif menu == "🧠 Analisis Nilai":
+    elif menu == "🧠Analisis Nilai":
         analisis_nilai_page()
     elif menu == "🤖 Evaluasi Akademik":
         evaluasi_akademik_page()
@@ -468,6 +468,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
