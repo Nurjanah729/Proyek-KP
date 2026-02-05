@@ -14,7 +14,6 @@ def mahasiswa_dashboard(student_id):
         st.markdown("Dashboard Akademik")
         st.markdown("---")
 
-        # Menu navigasi
         page = st.radio("Menu", ["Dashboard", "Pengaturan"])
         
         if st.button("🔓 Logout"):
@@ -22,10 +21,10 @@ def mahasiswa_dashboard(student_id):
             st.rerun()
 
     if page == "Pengaturan":
-        conn = get_db()  # ambil koneksi
-        pengaturan_page(student_id, conn)  # kirim 2 argumen
+        conn = get_db()
+        pengaturan_page(student_id, conn)
         conn.close()
-        return  # berhenti di sini, jangan render dashboard
+        return
 
     # ======================
     # DATABASE
@@ -48,8 +47,9 @@ def mahasiswa_dashboard(student_id):
 
     nama, divisi, universitas = mahasiswa
 
-    # --- STEP 1: Kamus Modul Sesuai Divisi ---
-    # Nama divisi harus sesuai dengan database: "Web Development"
+    # ======================
+    # KAMUS MODUL
+    # ======================
     kamus_modul = {
         "Data Science": {
             1: "Introduction to Data Science", 2: "Python for Data Analysis",
@@ -58,7 +58,7 @@ def mahasiswa_dashboard(student_id):
             7: "Unsupervised Learning", 8: "Deep Learning Intro",
             9: "Big Data Fundamentals", 10: "Model Deployment & MLOps"
         },
-        "Web Development": { 
+        "Web Development": {
             1: "HTML & CSS Dasar", 2: "Javascript ES6",
             3: "Responsive Design", 4: "Git & Version Control",
             5: "React.js Framework", 6: "Node.js Backend",
@@ -84,11 +84,17 @@ def mahasiswa_dashboard(student_id):
         box-shadow: 0 10px 30px rgba(11, 60, 140, 0.35);
         margin-bottom: 30px;
     }
-    /* Sembunyikan elemen saat cetak PDF */
-    @media print {
-        .stButton, .stDownloadButton, [data-testid="stSidebar"], [data-testid="stHeader"] {
-            display: none !important;
-        }
+    .welcome-quote {
+        margin-top: 12px;
+        color: #E5E7EB;
+        font-style: italic;
+    }
+    .mhs-card { /* 🔧 FIX */
+        background: white;
+        padding: 20px;
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -98,6 +104,9 @@ def mahasiswa_dashboard(student_id):
         <h2>🎓 Selamat Datang, {nama}</h2>
         <p><b>Divisi:</b> {divisi}</p>
         <p><b>Universitas:</b> {universitas}</p>
+        <p class="welcome-quote">
+            "Belajar hari ini adalah investasi masa depan."
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -105,61 +114,78 @@ def mahasiswa_dashboard(student_id):
         SELECT module, score
         FROM module_scores
         WHERE student_id = %s
-        ORDER BY CAST(module AS UNSIGNED) ASC
+        ORDER BY CAST(module AS UNSIGNED)
     """, (student_id,))
     data_nilai = cur.fetchall()
-    cur.close()
-    conn.close()
+
+    cur.close()          # 🔧 FIX
+    conn.close()         # 🔧 FIX
 
     if not data_nilai:
         st.warning("Nilai modul belum tersedia")
         return
 
-    # --- PENYUSUNAN DATA ---
     df = pd.DataFrame(data_nilai, columns=["Modul", "Nilai"])
     df["Modul"] = df["Modul"].astype(int)
-    
-    # Menambahkan keterangan berdasarkan divisi
+
     judul_sesuai_divisi = kamus_modul.get(divisi, {})
     df["Keterangan"] = df["Modul"].map(judul_sesuai_divisi)
     df["Keterangan"] = df["Keterangan"].fillna("Materi Pelatihan Tambahan")
-    
-    # Mengurutkan kolom agar rapi
     df = df[["Modul", "Keterangan", "Nilai"]]
 
+    df_display = df.copy()   # 🔧 FIX (INI YANG PALING PENTING)
+
     # ======================
-    # RINGKASAN & GRAFIK
+    # RINGKASAN
     # ======================
     col1, col2, col3 = st.columns(3)
     col1.metric("📊 Rata-rata Nilai", f"{df['Nilai'].mean():.2f}")
     col2.metric("⬆️ Nilai Tertinggi", df["Nilai"].max())
     col3.metric("⬇️ Nilai Terendah", df["Nilai"].min())
 
+    # ======================
+    # GRAFIK
+    # ======================
     st.markdown("### 📈 Performa Nilai Modul")
     fig, ax = plt.subplots(figsize=(9, 3))
-    ax.plot(df["Modul"], df["Nilai"], marker="o", color="#2563eb")
+    ax.plot(df["Modul"], df["Nilai"], marker="o", linewidth=2, color="#2563eb")
     ax.set_ylim(0, 100)
+    ax.grid(True, linestyle="--", alpha=0.4)
     st.pyplot(fig)
 
     # ======================
-    # TABEL DETAIL & FITUR CETAK
+    # STATUS AKADEMIK
+    # ======================
+    modul_lemah = df[df["Nilai"] < 70]
+
+    st.markdown("## 🎯 Status Akademik")
+
+    if modul_lemah.empty:
+        st.markdown("""
+        <div class="mhs-card">
+            <b>Status Akademik:</b> <span style="color:#16a34a;">Memenuhi Syarat</span><br><br>
+            Semua nilai modul kamu sudah berada di atas standar minimal (70).
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="mhs-card" style="background:#FFF7ED;">
+            <b>Status Akademik:</b> <span style="color:#EA580C;">Perlu Perbaikan</span><br><br>
+            Terdapat <b>{len(modul_lemah)} modul</b> dengan nilai di bawah standar (70).
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ======================
+    # TABEL
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
-    # Menggunakan df yang sudah didefinisikan untuk menghindari NameError
-    st.dataframe(df, use_container_width=True, hide_index=True)
-    
-    col_btn1, col_btn2 = st.columns([1, 4])
-    with col_btn1:
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 Download CSV",
-            data=csv,
-            file_name=f'Nilai_{nama.replace(" ", "_")}.csv',
-            mime='text/csv',
-            type="primary"
-        )
-        
-    with col_btn2:
-        if st.button("🖨️ Cetak ke PDF"):
-            st.info("💡 Gunakan **Ctrl + P** untuk menyimpan halaman ini sebagai PDF.")
-            st.components.v1.html("<script>window.print();</script>", height=0)
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
+
+    csv = df_display.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "📥 Download CSV",
+        csv,
+        f"Nilai_{nama.replace(' ', '_')}.csv",
+        "text/csv",
+        type="primary"
+    )
