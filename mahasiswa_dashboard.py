@@ -47,8 +47,8 @@ def mahasiswa_dashboard(student_id):
         return
 
     nama, divisi, universitas = mahasiswa
-    # --- INI ADALAH STEP 1 ---
-    # Kita membuat daftar judul modul untuk tiap divisi
+
+    # --- STEP 1: Judul Modul per Divisi ---
     kamus_modul = {
         "Data Science": {
             1: "Introduction to Data Science", 2: "Python for Data Analysis",
@@ -57,7 +57,7 @@ def mahasiswa_dashboard(student_id):
             7: "Unsupervised Learning", 8: "Deep Learning Intro",
             9: "Big Data Fundamentals", 10: "Model Deployment & MLOps"
         },
-        "Web Development": {  # <--- Diubah dari "Web Developer" agar sinkron dengan DB
+        "Web Development": {  # Sesuai dengan database
             1: "HTML & CSS Dasar", 2: "Javascript ES6",
             3: "Responsive Design", 4: "Git & Version Control",
             5: "React.js Framework", 6: "Node.js Backend",
@@ -89,6 +89,11 @@ def mahasiswa_dashboard(student_id):
         color: #E5E7EB;
         font-style: italic;
     }
+    @media print {
+        .stButton, .stDownloadButton, [data-testid="stSidebar"] {
+            display: none !important;
+        }
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -110,27 +115,24 @@ def mahasiswa_dashboard(student_id):
         ORDER BY CAST(module AS UNSIGNED)
     """, (student_id,))
     data_nilai = cur.fetchall()
+    cur.close()
     conn.close()
 
     if not data_nilai:
         st.warning("Nilai modul belum tersedia")
         return
 
+    # --- LOGIKA PENYUSUNAN TABEL ---
     df = pd.DataFrame(data_nilai, columns=["Modul", "Nilai"])
     df["Modul"] = df["Modul"].astype(int)
-    # --- LOGIKA PENAMBAHAN KETERANGAN ---
-    # Mengambil daftar judul berdasarkan divisi user
+    
+    # Mapping keterangan berdasarkan divisi
     judul_sesuai_divisi = kamus_modul.get(divisi, {})
-    
-    # Menambahkan kolom keterangan dengan memetakan nomor modul ke judul
     df["Keterangan"] = df["Modul"].map(judul_sesuai_divisi)
-    
-    # Jika nomor modul tidak ada di kamus, isi dengan teks default
     df["Keterangan"] = df["Keterangan"].fillna("Materi Pelatihan Tambahan")
     
-    # Atur urutan kolom agar lebih rapi (Modul - Keterangan - Nilai)
+    # Reorder kolom
     df = df[["Modul", "Keterangan", "Nilai"]]
-    # ------------------------------------
 
     # ======================
     # RINGKASAN
@@ -153,18 +155,18 @@ def mahasiswa_dashboard(student_id):
     st.pyplot(fig)
 
     # ======================
-    # MODUL LEMAH (SATU-SATUNYA DEFINISI)
+    # MODUL LEMAH
     # ======================
     modul_lemah = df[df["Nilai"] < 70]
 
     # ======================
-    # STATUS AKADEMIK (CARD PUTIH)
+    # STATUS AKADEMIK
     # ======================
     st.markdown("## 🎯 Status Akademik")
 
     if modul_lemah.empty:
         st.markdown("""
-        <div class="mhs-card">
+        <div style="background:white; padding:20px; border-radius:10px; border-left:5px solid #16a34a; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <b>Status Akademik:</b> <span style="color:#16a34a;">Memenuhi Syarat</span><br><br>
             Semua nilai modul kamu sudah berada di atas standar minimal (70).  
             Kamu sudah berada di jalur yang baik, pertahankan konsistensi belajarmu.
@@ -172,72 +174,40 @@ def mahasiswa_dashboard(student_id):
     """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <div class="mhs-card" style="background:#FFF7ED;">
+        <div style="background:#FFF7ED; padding:20px; border-radius:10px; border-left:5px solid #EA580C; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <b>Status Akademik:</b> <span style="color:#EA580C;">Perlu Perbaikan</span><br><br>
             Terdapat <b>{len(modul_lemah)} modul</b> dengan nilai di bawah standar (70).  
             Nilai tersebut perlu diperbaiki agar proses akademik kamu dapat berlanjut dengan optimal.
         </div>
         """, unsafe_allow_html=True)
 
-
     # ======================
-    # REKOMENDASI SISTEM (DALAM CARD)
+    # REKOMENDASI SISTEM
     # ======================
     st.markdown("## 🧠 Rekomendasi Sistem")
-
     if modul_lemah.empty:
-        st.info(
-            "✅ **Keputusan Sistem**\n\n"
-            "Seluruh nilai modul kamu sudah memenuhi standar.\n\n"
-            "Kamu **sudah diperbolehkan melanjutkan ke Project Akhir**.\n\n"
-            "Tetap jaga konsistensi belajar agar hasil tetap optimal."
-        )
-
+        st.info("✅ **Keputusan Sistem**: Kamu diperbolehkan melanjutkan ke **Project Akhir**.")
     else:
-        st.info(
-            "📌 **Keputusan Sistem**\n\n"
-            "Saat ini kamu **belum disarankan** untuk melanjutkan ke **Project Akhir**.\n\n"
-            "Hal ini karena masih terdapat modul dengan nilai di bawah standar.\n\n"
-            "**Modul yang perlu diperbaiki:**"
-        )
-
-        for _, row in modul_lemah.iterrows():
-            st.markdown(f"- **Modul {row['Modul']}** (Nilai {row['Nilai']})")
-
-        st.markdown(
-            "\nSetelah nilai modul tersebut memenuhi standar (≥ 70), "
-            "kamu dapat melanjutkan ke tahap **Project Akhir**."
-        )
-
-
+        st.warning("📌 **Keputusan Sistem**: Kamu belum disarankan ke Project Akhir. Perbaiki modul yang merah.")
 
     # ======================
-    # TABEL (PUTIH)
+    # TABEL & FITUR EKSPOR
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
-    st.dataframe(df_display, use_container_width=True, hide_index=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
     
-    # Fitur Download dan Cetak
     col_dl1, col_dl2 = st.columns([1, 4])
-        
     with col_dl1:
-            # Konversi ke CSV
-        csv = df_display.to_csv(index=False).encode('utf-8')
+        csv = df.to_csv(index=False).encode('utf-8')
         st.download_button(
             label="📥 Download CSV",
             data=csv,
             file_name=f'Nilai_{nama.replace(" ", "_")}.csv',
             mime='text/csv',
             type="primary"
-            )
+        )
         
     with col_dl2:
         if st.button("🖨️ Cetak / Simpan PDF"):
-            st.info("💡 Tips: Gunakan **Ctrl + P** (Windows) atau **Cmd + P** (Mac) untuk menyimpan halaman ini sebagai PDF.")
-                # Trigger print otomatis di browser
+            st.info("💡 Gunakan **Ctrl + P** untuk menyimpan sebagai PDF.")
             st.components.v1.html("<script>window.print();</script>", height=0)
-    
-    
-    
-    
-
