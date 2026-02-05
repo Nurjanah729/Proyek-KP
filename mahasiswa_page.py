@@ -34,7 +34,7 @@ def mahasiswa_page():
         st.header("Daftar Mahasiswa")
         
         # Ambil data dari database
-        cur.execute("SELECT id, name, division, university FROM students ORDER BY id DESC")
+        cur.execute("SELECT id, name, division, university FROM students ORDER BY id ASC")
         res = cur.fetchall()
         
         if res:
@@ -190,5 +190,6 @@ def mahasiswa_page():
             except Exception as e:
                 st.error(f"Gagal membaca file CSV: {e}")
     
+
 
 
