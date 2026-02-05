@@ -39,6 +39,10 @@ def mahasiswa_page():
     # Inisialisasi session state untuk custom university
     if 'universitas_custom' not in st.session_state:
         st.session_state.universitas_custom = ""
+    
+    # Inisialisasi selected university di session state
+    if 'selected_university' not in st.session_state:
+        st.session_state.selected_university = "Pilih Universitas..."
 
     # Navigasi - 3 MENU
     menu = st.radio(
@@ -71,26 +75,27 @@ def mahasiswa_page():
                 # Dropdown Universitas dari CSV + opsi Other
                 univ_options = ["Pilih Universitas..."] + st.session_state.universitas_list + ["Other (Lainnya)"]
                 
+                # Selectbox untuk universitas
                 selected_univ = st.selectbox(
                     "Asal Universitas*",
                     options=univ_options,
-                    index=0
+                    index=0,
+                    key="univ_selectbox"
                 )
+                
+                # Variable untuk menyimpan universitas akhir
+                final_univ = ""
                 
                 # Jika memilih "Other", tampilkan input text
                 if selected_univ == "Other (Lainnya)":
                     custom_univ = st.text_input(
                         "Nama Universitas Lainnya*",
                         placeholder="Masukkan nama universitas",
-                        key="custom_univ_input"
+                        key="custom_univ_input",
+                        value=""  # Reset value
                     )
-                    if custom_univ:
-                        final_univ = custom_univ
-                    else:
-                        final_univ = None
-                elif selected_univ == "Pilih Universitas...":
-                    final_univ = ""
-                else:
+                    final_univ = custom_univ
+                elif selected_univ != "Pilih Universitas...":
                     final_univ = selected_univ
             
             st.caption("*Wajib diisi")
@@ -140,6 +145,9 @@ def mahasiswa_page():
                             st.success("✅ Data mahasiswa berhasil disimpan!")
                             st.info(f"**Username:** {u_name} | **Password:** {u_pass}")
                             st.balloons()
+                            
+                            # Reset form
+                            st.session_state.selected_university = "Pilih Universitas..."
                             
                         except Exception as e:
                             conn.rollback()
