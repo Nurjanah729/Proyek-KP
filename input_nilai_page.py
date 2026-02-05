@@ -42,36 +42,29 @@ def analisis_ml_dan_simpan(student_id):
         conn.close()
         return
 
-    # 🔥 JALANKAN MODEL ML
+    # JALANKAN MODEL ML
     prediction, confidence, weak_modules, avg_score = run_analysis(df)
 
-    # NORMALISASI LABEL (MODEL KAMU CUMA 2)
-    hasil = str(prediction).capitalize()
-    if hasil not in ["Excellent", "Good"]:
-        hasil = "Good"
+    # LABEL SESUAI MODEL KAMU
+    hasil = "Excellent" if str(prediction).lower() in ["excellent", "2"] else "Good"
 
     cur = conn.cursor()
 
-    # HAPUS HASIL LAMA (BIAR SINKRON)
-    cur.execute(
-        "DELETE FROM predictions WHERE student_id = %s",
-        (student_id,)
-    )
+    # HAPUS HASIL LAMA
+    cur.execute("DELETE FROM predictions WHERE student_id = %s", (student_id,))
 
-    # SIMPAN HASIL ML
+    # SIMPAN (SESUSAI STRUKTUR TABEL!)
     cur.execute("""
-        INSERT INTO predictions (student_id, result, confidence, avg_score)
-        VALUES (%s, %s, %s, %s)
-    """, (
-        int(student_id),
-        hasil,
-        float(confidence),
-        float(avg_score)
-    ))
+        INSERT INTO predictions (student_id, result)
+        VALUES (%s, %s)
+    """, (student_id, hasil))
 
     conn.commit()
     cur.close()
     conn.close()
+    analisis_ml_dan_simpan(s_id)
+
+
 
 # ==========================================
 # 3. HALAMAN INPUT NILAI
@@ -142,3 +135,4 @@ def input_nilai_page():
 # ==========================================
 if __name__ == "__main__":
     input_nilai_page()
+
