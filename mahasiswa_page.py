@@ -7,33 +7,28 @@ import io
 # 1. FIX INTERFACE: TEKS PUTIH & TOMBOL KUNING
 # ==========================================
 st.markdown("""
+    st.markdown("""
     <style>
-    /* Mengunci teks agar SELALU PUTIH */
-    html, body, [data-testid="stWidgetLabel"] p, label, .stMarkdown p, h3, h2, h1, span {
-        color: white !important;
+    /* 1. Paksa teks label dan tulisan umum menjadi HITAM/GELAP agar kontras */
+    [data-testid="stWidgetLabel"] p, label, .stMarkdown p, h3, h2, h1, span {
+        color: #1F2937 !important; 
         font-weight: 600 !important;
     }
     
-    /* Area upload file */
-    [data-testid="stFileUploader"] {
-        background-color: rgba(255, 255, 255, 0.05);
-        border: 1px dashed #FFD700;
-        border-radius: 10px;
-    }
-
-    /* Tombol Kuning Emas sesuai gambar Anda */
+    /* 2. Tombol Kuning tetap, tapi teks di dalamnya dibuat gelap */
     div.stButton > button {
         background-color: #FFCC00 !important;
-        color: black !important;
+        color: #1F2937 !important;
         font-weight: bold !important;
-        border: none !important;
-        height: 48px;
-        width: 100%;
         border-radius: 8px;
+    }
+
+    /* 3. Perbaiki warna teks di Sidebar agar tidak putih di background terang */
+    [data-testid="stSidebar"] .stMarkdown p {
+        color: #1F2937 !important;
     }
     </style>
     """, unsafe_allow_html=True)
-
 def generate_credentials(nama, s_id):
     u_name = f"vinix_{str(nama).lower().split()[0]}_{s_id}"
     u_pass = f"VNX-{s_id}X"
@@ -122,6 +117,7 @@ def mahasiswa_page():
 
 if __name__ == "__main__":
     mahasiswa_page()
+
 
 
 
