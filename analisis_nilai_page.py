@@ -1,29 +1,26 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px # Pastikan sudah install: pip install plotly
+import plotly.express as px
 from db import get_db
 from ml_model import run_analysis
 
-def analisis_nilai_admin():
+def evaluasi_akademik_page():
     # ==========================================
-    # 1. UI CUSTOMIZATION (Sesuai Dashboard Mahasiswa)
+    # UI STYLING
     # ==========================================
     st.markdown("""
         <style>
-        .main { background-color: #0E1117; }
-        div[data-testid="stMetricValue"] { color: #FFCC00; font-size: 30px; }
-        .stDataFrame { border: 1px solid #FFCC00; border-radius: 10px; }
-        h1, h2, h3 { color: white !important; }
+        div[data-testid="stMetricValue"] { color: #FFCC00 !important; font-size: 28px; }
+        .stDataFrame { border: 1px solid #333; border-radius: 8px; }
         </style>
     """, unsafe_allow_html=True)
 
-    st.title("🏛️ Dashboard Analisis Akademik (Admin)")
-    st.write("Sistem Pendukung Keputusan Kelayakan Project Akhir - PT Vinix Seven Aurum")
+    st.title("📑 Laporan Evaluasi Akademik")
+    st.write("Sistem Pendukung Keputusan Berbasis Machine Learning - PT Vinix Seven Aurum")
     st.divider()
 
     conn = get_db()
     
-    # Ambil data mahasiswa & nilai
     query = """
         SELECT s.id, s.name, m.module, m.score 
         FROM students s
@@ -32,93 +29,67 @@ def analisis_nilai_admin():
     df_raw = pd.read_sql(query, conn)
 
     if df_raw.empty or df_raw['module'].isnull().all():
-        st.warning("⚠️ Belum ada data nilai yang tersedia untuk dianalisis.")
+        st.info("ℹ️ Belum ada data nilai terkini untuk dievaluasi.")
         conn.close()
         return
 
     # ==========================================
-    # 2. PENGOLAHAN DATA DENGAN MACHINE LEARNING
+    # ANALISIS MACHINE LEARNING
     # ==========================================
     summary_list = []
     
-    # Loop per mahasiswa untuk analisis Random Forest
     for student_id in df_raw['id'].unique():
         student_name = df_raw[df_raw['id'] == student_id]['name'].iloc[0]
         student_scores = df_raw[df_raw['id'] == student_id][['module', 'score']].dropna()
         
         if not student_scores.empty:
-            # Ubah kolom agar sesuai fungsi run_analysis (Modul, Nilai)
             student_scores.columns = ['Modul', 'Nilai']
             
-            # Eksekusi Model Random Forest
+            # Prediksi Random Forest
             prediction, confidence, weak_mods, avg_score = run_analysis(student_scores)
             
-            # Logika Kelayakan (Sesuai Bab I: Mendukung Pengambilan Keputusan)
-            status = "✅ LAYAK" if prediction in ["Sangat Baik", "Baik"] else "⚠️ REVISI"
+            # Istilah Profesional untuk Pengambil Keputusan
+            status = "Sesuai Standar" if prediction in ["Sangat Baik", "Baik"] else "Perlu Penguatan"
             
             summary_list.append({
-                "Nama Mahasiswa": student_name,
-                "Rata-rata": avg_score,
-                "Prediksi Performa": prediction,
-                "Akurasi AI": f"{int(confidence*100)}%",
-                "Rekomendasi": status,
-                "Modul Lemah": ", ".join(map(str, weak_mods)) if weak_mods else "Tidak ada"
+                "Nama Peserta": student_name,
+                "Rerata Skor": avg_score,
+                "Klasifikasi AI": prediction,
+                "Status Akhir": status,
+                "Catatan Modul": ", ".join(map(str, weak_mods)) if weak_mods else "Optimal"
             })
 
     df_final = pd.DataFrame(summary_list)
 
     # ==========================================
-    # 3. INTERFACE: METRICS & VISUALISASI
+    # DASHBOARD VIEW
     # ==========================================
-    # Baris 1: Ringkasan Angka
-    m1, m2, m3 = st.columns(3)
-    with m1:
-        st.metric("Total Mahasiswa", len(df_final))
-    with m2:
-        layak_count = len(df_final[df_final["Rekomendasi"] == "✅ LAYAK"])
-        st.metric("Layak Proyek Akhir", f"{layak_count} Orang")
-    with m3:
-        avg_class = round(df_final["Rata-rata"].mean(), 1)
-        st.metric("Rata-rata Kelas", avg_class)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Peserta", len(df_final))
+    
+    # Hitung presentase kelulusan
+    memenuhi = len(df_final[df_final["Status Akhir"] == "Sesuai Standar"])
+    persen_lulus = int((memenuhi/len(df_final))*100) if len(df_final) > 0 else 0
+    
+    col2.metric("Kelulusan Standar", f"{persen_lulus}%")
+    col3.metric("Rerata Kolektif", round(df_final["Rerata Skor"].mean(), 1))
 
     st.divider()
 
-    # Baris 2: Tabel & Grafik
-    col_left, col_right = st.columns([2, 1])
+    c_tab, c_pie = st.columns([2, 1])
 
-    with col_left:
-        st.subheader("📋 Daftar Analisis Performa")
-        # Styling baris berdasarkan status
+    with c_tab:
+        st.subheader("📋 Tabel Rekapitulasi Performa")
         st.dataframe(df_final, use_container_width=True, hide_index=True)
 
-    with col_right:
-        st.subheader("📊 Distribusi Hasil")
-        fig = px.pie(df_final, names='Prediksi Performa', 
-                     color='Prediksi Performa',
+    with c_pie:
+        st.subheader("📊 Distribusi Performa")
+        fig = px.pie(df_final, names='Klasifikasi AI', 
+                     color='Klasifikasi AI',
                      color_discrete_map={'Sangat Baik':'#00CC96', 'Baik':'#636EFA', 'Cukup':'#FECB52', 'Kurang':'#EF553B'},
                      hole=0.4)
-        fig.update_layout(showlegend=False, margin=dict(t=0, b=0, l=0, r=0))
+        fig.update_layout(showlegend=True, margin=dict(t=0, b=0, l=0, r=0), 
+                          paper_bgcolor='rgba(0,0,0,0)', legend_font_color="white")
         st.plotly_chart(fig, use_container_width=True)
 
-    # ==========================================
-    # 4. MODUL KRITIS (Insight untuk Admin)
-    # ==========================================
-    st.divider()
-    st.subheader("💡 Insight untuk Manajemen")
-    
-    # Hitung modul yang paling sering muncul di 'Modul Lemah'
-    all_weak = []
-    for m in df_final["Modul Lemah"]:
-        if m != "Tidak ada":
-            all_weak.extend(m.split(", "))
-    
-    if all_weak:
-        most_common_weak = max(set(all_weak), key=all_weak.count)
-        st.error(f"**Peringatan:** Modul {most_common_weak} merupakan modul dengan kendala terbanyak di angkatan ini. Disarankan melakukan evaluasi materi.")
-    else:
-        st.success("**Luar Biasa:** Tidak ditemukan modul kritis. Performa akademik stabil.")
-
     conn.close()
-
-if __name__ == "__main__":
-    analisis_nilai_admin()
