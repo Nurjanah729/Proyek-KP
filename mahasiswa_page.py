@@ -116,55 +116,56 @@ def mahasiswa_page():
     # DATA MAHASISWA
     # =========================
     elif menu == "📤 Unggah Data CSV":
-    st.header("Unggah Data CSV Mahasiswa")
-
-    uploaded_file = st.file_uploader(
-        "Pilih file CSV",
-        type=["csv"]
-    )
-
-    if uploaded_file:
-        try:
-            df = pd.read_csv(uploaded_file)
-
-            st.write("Preview Data:")
-            st.dataframe(df.head(), use_container_width=True)
-
-            if st.button("💾 Simpan Semua Data", type="primary"):
-                success, failed = 0, 0
-
-                for _, row in df.iterrows():
-                    try:
-                        name = str(row.get("name", "")).strip()
-                        division = str(row.get("division", "")).strip()
-                        university = str(row.get("university", "")).strip()
-
-                        if name and division and university:
-                            cur.execute(
-                                "INSERT INTO students (name, division, university) VALUES (%s, %s, %s)",
-                                (name, division, university)
-                            )
-
-                            student_id = cur.lastrowid
-                            username = f"vinix_{name.lower().split()[0]}_{student_id}"
-                            password = f"VNX-{student_id}X"
-
-                            cur.execute(
-                                "INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)",
-                                (username, password, "mahasiswa", student_id)
-                            )
-
-                            success += 1
-                        else:
+        st.header("Unggah Data CSV Mahasiswa")
+    
+        uploaded_file = st.file_uploader(
+            "Pilih file CSV",
+            type=["csv"]
+        )
+    
+        if uploaded_file:
+            try:
+                df = pd.read_csv(uploaded_file)
+    
+                st.write("Preview Data:")
+                st.dataframe(df.head(), use_container_width=True)
+    
+                if st.button("💾 Simpan Semua Data", type="primary"):
+                    success, failed = 0, 0
+    
+                    for _, row in df.iterrows():
+                        try:
+                            name = str(row.get("name", "")).strip()
+                            division = str(row.get("division", "")).strip()
+                            university = str(row.get("university", "")).strip()
+    
+                            if name and division and university:
+                                cur.execute(
+                                    "INSERT INTO students (name, division, university) VALUES (%s, %s, %s)",
+                                    (name, division, university)
+                                )
+    
+                                student_id = cur.lastrowid
+                                username = f"vinix_{name.lower().split()[0]}_{student_id}"
+                                password = f"VNX-{student_id}X"
+    
+                                cur.execute(
+                                    "INSERT INTO users (username, password, role, student_id) VALUES (%s, %s, %s, %s)",
+                                    (username, password, "mahasiswa", student_id)
+                                )
+    
+                                success += 1
+                            else:
+                                failed += 1
+                        except:
                             failed += 1
-                    except:
-                        failed += 1
-
-                conn.commit()
-
-                st.success(f"✅ {success} data berhasil disimpan")
-                if failed:
-                    st.warning(f"⚠️ {failed} data gagal disimpan")
-
-        except Exception as e:
-            st.error(f"Gagal membaca file CSV: {e}")
+    
+                    conn.commit()
+    
+                    st.success(f"✅ {success} data berhasil disimpan")
+                    if failed:
+                        st.warning(f"⚠️ {failed} data gagal disimpan")
+    
+            except Exception as e:
+                st.error(f"Gagal membaca file CSV: {e}")
+    
