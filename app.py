@@ -59,11 +59,21 @@ section[data-testid="stSidebar"] * {
     color: #FFFFFF !important;
 }
 
-/* ================= SIDEBAR RADIO ================= */
-div[role="radiogroup"] label {
+/* RADIO HANYA PUTIH DI SIDEBAR */
+section[data-testid="stSidebar"] div[role="radiogroup"] label {
     color: #FFFFFF !important;
     font-weight: 600;
 }
+/* RADIO DI KONTEN UTAMA (BIAR KELIHATAN) */
+.stApp div[role="radiogroup"] label {
+    color: #1F2937 !important; /* hitam */
+}
+
+/* TEXT SELECTBOX BIAR KELIHATAN */
+div[data-baseweb="select"] span {
+    color: #1F2937 !important;
+}
+
 
 div[role="radiogroup"] input:checked + div {
     background-color: #FFD84D !important;
@@ -426,6 +436,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
