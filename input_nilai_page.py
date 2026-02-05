@@ -1,92 +1,144 @@
 import streamlit as st
 import pandas as pd
 from db import get_db
-import io # Tambahkan ini agar pembacaan file lebih stabil
+import io
+from ml_model import run_analysis
 
 # ==========================================
 # 1. UI FIXED (TEKS PUTIH & TOMBOL KUNING)
 # ==========================================
 st.markdown("""
-    <style>
-    /* Paksa teks tetap putih */
-    html, body, [data-testid="stWidgetLabel"] p, label, .stMarkdown p, h3, h2, h1, span {
-        color: white !important;
-        font-weight: 600 !important;
-    }
-    
-    /* Tombol Kuning Emas agar seragam dengan halaman Mahasiswa */
-    div.stButton > button {
-        background-color: #FFCC00 !important;
-        color: black !important;
-        font-weight: bold !important;
-        border: none !important;
-        height: 48px;
-        width: 100%;
-        border-radius: 8px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+html, body, [data-testid="stWidgetLabel"] p, label, .stMarkdown p, h3, h2, h1, span {
+    color: white !important;
+    font-weight: 600 !important;
+}
+div.stButton > button {
+    background-color: #FFCC00 !important;
+    color: black !important;
+    font-weight: bold !important;
+    border: none !important;
+    height: 48px;
+    width: 100%;
+    border-radius: 8px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ==========================================
-# 2. HALAMAN INPUT NILAI (ANTI-DATA MENUMPUK)
+# 2. FUNGSI ML → SIMPAN KE predictions
+# ==========================================
+def analisis_ml_dan_simpan(student_id):
+    conn = get_db()
+
+    df = pd.read_sql("""
+        SELECT module AS Modul, score AS Nilai
+        FROM module_scores
+        WHERE student_id = %s
+        ORDER BY module
+    """, conn, params=(student_id,))
+
+    if df.empty:
+        conn.close()
+        return
+
+    # 🔥 JALANKAN MODEL ML
+    prediction, confidence, weak_modules, avg_score = run_analysis(df)
+
+    # NORMALISASI LABEL (MODEL KAMU CUMA 2)
+    hasil = str(prediction).capitalize()
+    if hasil not in ["Excellent", "Good"]:
+        hasil = "Good"
+
+    cur = conn.cursor()
+
+    # HAPUS HASIL LAMA (BIAR SINKRON)
+    cur.execute(
+        "DELETE FROM predictions WHERE student_id = %s",
+        (student_id,)
+    )
+
+    # SIMPAN HASIL ML
+    cur.execute("""
+        INSERT INTO predictions (student_id, result, confidence, avg_score)
+        VALUES (%s, %s, %s, %s)
+    """, (
+        int(student_id),
+        hasil,
+        float(confidence),
+        float(avg_score)
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# ==========================================
+# 3. HALAMAN INPUT NILAI
 # ==========================================
 def input_nilai_page():
     st.title("📥 Import Nilai Mahasiswa")
-    st.write("Unggah berkas CSV untuk memperbarui nilai mahasiswa ID 1-5.")
+    st.write("Unggah CSV/XLSX → nilai langsung dianalisis ML")
     st.divider()
 
-    uploaded_file = st.file_uploader("Pilih file (CSV/XLSX)", type=["csv", "xlsx"], key="final_uploader_nilai")
+    uploaded_file = st.file_uploader(
+        "Pilih file (CSV/XLSX)",
+        type=["csv", "xlsx"]
+    )
 
     if uploaded_file is not None:
         try:
-            # PERBAIKAN: Gunakan pendeteksi kolom otomatis (sep=None)
-            if uploaded_file.name.endswith('.csv'):
-                content = uploaded_file.getvalue().decode('utf-8')
-                df = pd.read_csv(io.StringIO(content), sep=None, engine='python')
+            if uploaded_file.name.endswith(".csv"):
+                content = uploaded_file.getvalue().decode("utf-8")
+                df = pd.read_csv(io.StringIO(content), sep=None, engine="python")
             else:
                 df = pd.read_excel(uploaded_file)
 
-            # Bersihkan nama kolom dari spasi dan huruf kapital
             df.columns = df.columns.str.strip().str.lower()
 
-            st.write("### Preview Data:")
+            st.write("### Preview Data")
             st.dataframe(df.head())
 
-            if st.button("Simpan Data Nilai"):
+            if st.button("Simpan & Analisis ML"):
                 conn = get_db()
                 cur = conn.cursor()
-                
-                success_count = 0
+
+                success = 0
+                student_ids = set()
+
                 for _, row in df.iterrows():
                     try:
-                        # Logika pembersihan ID Anda sudah bagus, kita pertahankan
-                        raw_id = str(row['student_id']).upper().replace('S', '')
-                        s_id = int(''.join(filter(str.isdigit, raw_id)))
-                        
-                        raw_mod = str(row['module']).lower().replace('modul', '').strip()
-                        m_num = int(''.join(filter(str.isdigit, raw_mod)))
-                        
-                        s_score = int(row['score'])
+                        s_id = int(str(row["student_id"]).replace("S", ""))
+                        module = int(str(row["module"]).replace("modul", ""))
+                        score = int(row["score"])
 
-                        # Simpan/Update Nilai ke tabel module_scores
                         cur.execute("""
                             INSERT INTO module_scores (student_id, module, score)
                             VALUES (%s, %s, %s)
                             ON DUPLICATE KEY UPDATE score = VALUES(score)
-                        """, (s_id, m_num, s_score))
-                        success_count += 1
+                        """, (s_id, module, score))
+
+                        student_ids.add(s_id)
+                        success += 1
                     except:
                         continue
-                
+
                 conn.commit()
                 cur.close()
                 conn.close()
-                
-                st.success(f"✅ Berhasil menyimpan {success_count} data nilai!")
+
+                # 🔥 LANGSUNG JALANKAN ML
+                for sid in student_ids:
+                    analisis_ml_dan_simpan(sid)
+
+                st.success(f"✅ {success} data disimpan & dianalisis ML")
                 st.balloons()
 
         except Exception as e:
-            st.error(f"❌ Terjadi kesalahan: {e}")
+            st.error(f"❌ Error: {e}")
 
+# ==========================================
+# 4. MAIN
+# ==========================================
 if __name__ == "__main__":
     input_nilai_page()
