@@ -1,16 +1,18 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px # Menggunakan Plotly untuk Grafik Donat
+import plotly.express as px
 from db import get_db
 from ml_model import run_analysis
 
 def evaluasi_akademik_page():
-    # Style Dashboard
+    # Style Dashboard agar bersih
     st.markdown("""
         <style>
         div[data-testid="stMetricValue"] { color: #FFCC00 !important; font-size: 28px; }
         .stDataFrame { border: 1px solid #E2E8F0; border-radius: 10px; }
         h1, h2, h3 { color: #0B3C8C !important; }
+        /* Menghilangkan border pada grafik plotly */
+        .js-plotly-plot { border: none !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -34,38 +36,27 @@ def evaluasi_akademik_page():
         
         if not student_scores.empty:
             student_scores.columns = ['Modul', 'Nilai']
-            
-            # Memanggil fungsi analisis Random Forest
             prediction, confidence, weak_mods, avg_score = run_analysis(student_scores)
             
-            # Menyimpan data sesuai permintaan tabel (Hanya 3 kolom)
             summary_list.append({
                 "Nama Mahasiswa": student_name, 
                 "Rata-rata Nilai": avg_score,
-                "Hasil Analisis": prediction # Menggunakan Label ML asli: Sangat Baik, Baik, dsb.
+                "Hasil Analisis": prediction
             })
 
     df_final = pd.DataFrame(summary_list)
 
-    # ==========================================
-    # BAGIAN ATAS (METRICS)
-    # ==========================================
+    # --- METRICS ---
     col1, col2, col3 = st.columns(3)
-    
     col1.metric("Data Mahasiswa Terproses", f"{len(df_final)} Orang")
-    
-    # Kesiapan Proyek Akhir (Berdasarkan label Sangat Baik & Baik)
     siap = len(df_final[df_final["Hasil Analisis"].isin(["Sangat Baik", "Baik"])])
     persen_siap = int((siap/len(df_final))*100) if len(df_final) > 0 else 0
     col2.metric("Kesiapan Proyek Akhir", f"{persen_siap}%")
-    
     col3.metric("Rerata Nilai Angkatan", round(df_final["Rata-rata Nilai"].mean(), 1))
 
     st.divider()
 
-    # ==========================================
-    # BAGIAN TABEL & GRAFIK DONUT
-    # ==========================================
+    # --- TABEL & GRAFIK DONUT ---
     col_left, col_right = st.columns([1.5, 1])
 
     with col_left:
@@ -74,11 +65,10 @@ def evaluasi_akademik_page():
 
     with col_right:
         st.subheader("📊 Distribusi Performa")
-        # Membuat Grafik Donat menggunakan Plotly
         fig = px.pie(
             df_final, 
             names='Hasil Analisis', 
-            hole=0.5,
+            hole=0.6,
             color='Hasil Analisis',
             color_discrete_map={
                 'Sangat Baik': '#00CC96', 
@@ -87,11 +77,17 @@ def evaluasi_akademik_page():
                 'Kurang': '#EF553B'
             }
         )
+        
+        # KUNCI UNTUK MENGHILANGKAN WARNA HITAM:
         fig.update_layout(
-            showlegend=True, 
-            margin=dict(t=0, b=0, l=0, r=0),
-            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+            showlegend=True,
+            paper_bgcolor='rgba(0,0,0,0)', # Membuat background transparan
+            plot_bgcolor='rgba(0,0,0,0)',  # Membuat area plot transparan
+            margin=dict(t=10, b=10, l=10, r=10),
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+            font=dict(color="#1F2937") # Mengubah warna teks legenda agar terbaca di background terang
         )
+        
         st.plotly_chart(fig, use_container_width=True)
 
     conn.close()
