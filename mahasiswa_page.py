@@ -17,13 +17,10 @@ def load_universitas_data():
             universities = df['nama_universitas'].tolist()
             return sorted(universities)  # Urutkan alfabet
         else:
-            st.error("Format CSV tidak valid. Kolom 'nama_universitas' tidak ditemukan.")
             return []
     except FileNotFoundError:
-        st.error("File universitas_indonesia.csv tidak ditemukan.")
         return []
     except Exception as e:
-        st.error(f"Error membaca file CSV: {str(e)}")
         return []
 
 # ==========================================
@@ -35,14 +32,6 @@ def mahasiswa_page():
     # Load data universitas sekali di awal
     if 'universitas_list' not in st.session_state:
         st.session_state.universitas_list = load_universitas_data()
-    
-    # Inisialisasi session state untuk custom university
-    if 'universitas_custom' not in st.session_state:
-        st.session_state.universitas_custom = ""
-    
-    # Inisialisasi selected university di session state
-    if 'selected_university' not in st.session_state:
-        st.session_state.selected_university = "Pilih Universitas..."
 
     # Navigasi - 3 MENU
     menu = st.radio(
@@ -56,62 +45,67 @@ def mahasiswa_page():
     cur = conn.cursor()
 
     if menu == "📝 Input Mahasiswa":
-        st.subheader("Registrasi Mahasiswa Baru")
-        st.write("Masukkan data mahasiswa baru secara manual:")
+        st.header("📝 Input Mahasiswa Baru")
+        st.write("Silakan isi form di bawah untuk mendaftarkan mahasiswa baru.")
         
+        # Buat form
         with st.form("form_input_mahasiswa", clear_on_submit=True):
+            st.subheader("Data Mahasiswa")
+            
             col1, col2 = st.columns(2)
             
             with col1:
                 m_id = st.text_input("ID Mahasiswa (NIM)*", 
-                                   placeholder="Contoh: 12345678")
+                                   placeholder="Contoh: 12345678",
+                                   help="Masukkan NIM mahasiswa")
                 m_nama = st.text_input("Nama Lengkap*", 
-                                     placeholder="Contoh: Ahmad Budi")
+                                     placeholder="Contoh: Ahmad Budi",
+                                     help="Masukkan nama lengkap mahasiswa")
             
             with col2:
                 m_div = st.selectbox("Divisi*", 
-                                   ["", "AI Engineering", "Web Development", "Data Science", "Mobile Development", "UI/UX Design"])
+                                   ["Pilih Divisi...", "AI Engineering", "Web Development", "Data Science", "Mobile Development", "UI/UX Design"],
+                                   help="Pilih divisi untuk mahasiswa")
                 
                 # Dropdown Universitas dari CSV + opsi Other
                 univ_options = ["Pilih Universitas..."] + st.session_state.universitas_list + ["Other (Lainnya)"]
                 
-                # Selectbox untuk universitas
                 selected_univ = st.selectbox(
                     "Asal Universitas*",
                     options=univ_options,
                     index=0,
-                    key="univ_selectbox"
+                    help="Pilih universitas dari daftar atau 'Other' untuk universitas lain"
                 )
-                
-                # Variable untuk menyimpan universitas akhir
-                final_univ = ""
                 
                 # Jika memilih "Other", tampilkan input text
                 if selected_univ == "Other (Lainnya)":
                     custom_univ = st.text_input(
                         "Nama Universitas Lainnya*",
-                        placeholder="Masukkan nama universitas",
-                        key="custom_univ_input",
-                        value=""  # Reset value
+                        placeholder="Masukkan nama universitas yang tidak ada di daftar",
+                        help="Ketik nama universitas lengkap",
+                        value=""
                     )
                     final_univ = custom_univ
-                elif selected_univ != "Pilih Universitas...":
+                elif selected_univ == "Pilih Universitas...":
+                    final_univ = ""
+                else:
                     final_univ = selected_univ
             
-            st.caption("*Wajib diisi")
+            st.markdown("---")
+            st.caption("*) Wajib diisi")
             
-            submitted = st.form_submit_button("💾 Simpan Mahasiswa", type="primary")
+            submitted = st.form_submit_button("💾 Simpan Data Mahasiswa", type="primary")
             
             if submitted:
                 # Validasi input
                 errors = []
-                if not m_id:
+                if not m_id or m_id.strip() == "":
                     errors.append("❌ ID Mahasiswa wajib diisi")
-                if not m_nama:
+                if not m_nama or m_nama.strip() == "":
                     errors.append("❌ Nama Lengkap wajib diisi")
-                if not m_div:
+                if m_div == "Pilih Divisi...":
                     errors.append("❌ Divisi wajib dipilih")
-                if not final_univ or final_univ == "":
+                if not final_univ or final_univ.strip() == "":
                     errors.append("❌ Asal Universitas wajib diisi")
                 
                 if errors:
@@ -143,24 +137,39 @@ def mahasiswa_page():
                             conn.commit()
                             
                             st.success("✅ Data mahasiswa berhasil disimpan!")
-                            st.info(f"**Username:** {u_name} | **Password:** {u_pass}")
-                            st.balloons()
                             
-                            # Reset form
-                            st.session_state.selected_university = "Pilih Universitas..."
+                            # Tampilkan detail akun
+                            with st.expander("📋 Detail Akun Mahasiswa", expanded=True):
+                                st.write(f"**ID Mahasiswa:** {m_id}")
+                                st.write(f"**Nama:** {m_nama}")
+                                st.write(f"**Divisi:** {m_div}")
+                                st.write(f"**Universitas:** {final_univ}")
+                                st.write(f"**Username:** `{u_name}`")
+                                st.write(f"**Password:** `{u_pass}`")
+                                st.warning("⚠️ Simpan username dan password ini!")
+                            
+                            st.balloons()
                             
                         except Exception as e:
                             conn.rollback()
                             st.error(f"❌ Gagal menyimpan data: {str(e)}")
 
     elif menu == "📤 Unggah Data Mahasiswa":
-        st.subheader("Registrasi Kolektif via CSV")
-        st.write("Unggah file CSV berisi data mahasiswa:")
+        st.header("📤 Unggah Data Mahasiswa")
+        st.write("Unggah file CSV berisi data mahasiswa untuk registrasi kolektif.")
+        
+        st.info("""
+        **Format CSV yang diperlukan:**
+        - Kolom 1: `id` (ID Mahasiswa/NIM)
+        - Kolom 2: `name` (Nama Lengkap)
+        - Kolom 3: `division` (Divisi: AI Engineering, Web Development, Data Science, dll)
+        - Kolom 4: `university` (Asal Universitas)
+        """)
         
         uploaded_file = st.file_uploader(
-            "Pilih Berkas CSV", 
+            "Pilih File CSV", 
             type=["csv"], 
-            help="Format CSV harus memiliki kolom: id, name, division, university"
+            help="Unggah file CSV dengan format yang sesuai"
         )
 
         if uploaded_file is not None:
@@ -172,7 +181,7 @@ def mahasiswa_page():
                 # Membersihkan nama kolom
                 df.columns = df.columns.str.strip().str.lower()
                 
-                st.write("### Pratinjau Data:")
+                st.subheader("Pratinjau Data")
                 st.dataframe(df.head())
                 
                 # Validasi kolom yang diperlukan
@@ -181,22 +190,36 @@ def mahasiswa_page():
                 
                 if missing_cols:
                     st.error(f"❌ Kolom berikut tidak ditemukan: {', '.join(missing_cols)}")
+                    st.write(f"Kolom yang terbaca: {list(df.columns)}")
                 else:
-                    if st.button("💾 Simpan Semua Data", type="primary"):
+                    st.success(f"✅ Format CSV valid. Ditemukan {len(df)} data mahasiswa.")
+                    
+                    if st.button("🚀 Proses dan Simpan Semua Data", type="primary"):
                         success_count = 0
                         error_count = 0
+                        error_messages = []
                         
-                        for _, row in df.iterrows():
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+                        
+                        for idx, row in df.iterrows():
                             try:
                                 sid = str(row['id']).strip()
                                 sname = str(row['name']).strip()
                                 sdiv = str(row['division']).strip()
                                 suniv = str(row['university']).strip()
                                 
+                                # Validasi data
+                                if not sid or not sname or not sdiv or not suniv:
+                                    error_count += 1
+                                    error_messages.append(f"Baris {idx+2}: Data tidak lengkap")
+                                    continue
+                                
                                 # Cek apakah ID sudah ada
                                 cur.execute("SELECT id FROM students WHERE id = %s", (sid,))
                                 if cur.fetchone():
                                     error_count += 1
+                                    error_messages.append(f"Baris {idx+2}: ID {sid} sudah terdaftar")
                                     continue
                                 
                                 # Generate username dan password
@@ -218,20 +241,37 @@ def mahasiswa_page():
                                 
                             except Exception as e:
                                 error_count += 1
-                                continue
+                                error_messages.append(f"Baris {idx+2}: {str(e)}")
+                            
+                            # Update progress
+                            progress = (idx + 1) / len(df)
+                            progress_bar.progress(progress)
+                            status_text.text(f"Memproses {idx + 1}/{len(df)} data...")
                         
                         conn.commit()
                         
-                        st.success(f"✅ Berhasil menyimpan {success_count} data mahasiswa!")
+                        progress_bar.empty()
+                        status_text.empty()
+                        
+                        st.success(f"✅ Proses selesai! Berhasil menyimpan {success_count} data mahasiswa.")
+                        
                         if error_count > 0:
-                            st.warning(f"⚠️ {error_count} data gagal disimpan (mungkin ID duplikat)")
-                        st.balloons()
+                            st.warning(f"⚠️ {error_count} data gagal diproses")
+                            with st.expander("Lihat detail error"):
+                                for error in error_messages[:10]:  # Tampilkan maksimal 10 error
+                                    st.error(error)
+                                if len(error_messages) > 10:
+                                    st.write(f"... dan {len(error_messages) - 10} error lainnya")
+                        
+                        if success_count > 0:
+                            st.balloons()
             
             except Exception as e:
                 st.error(f"❌ Gagal membaca file CSV: {str(e)}")
 
     else:  # Menu: 📊 Mahasiswa Terdaftar
-        st.subheader("Daftar Mahasiswa Terdaftar")
+        st.header("📊 Mahasiswa Terdaftar")
+        st.write("Berikut adalah daftar mahasiswa yang telah terdaftar.")
         
         # Query semua data mahasiswa
         cur.execute("SELECT id, name, division, university FROM students ORDER BY id ASC")
@@ -239,13 +279,23 @@ def mahasiswa_page():
         
         if res:
             df = pd.DataFrame(res, columns=["ID", "Nama", "Divisi", "Universitas"])
+            
+            # Tampilkan statistik singkat
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Total Mahasiswa", len(df))
+            with col2:
+                st.metric("Jumlah Universitas", df['Universitas'].nunique())
+            
+            # Tampilkan tabel
             st.dataframe(
                 df,
                 use_container_width=True,
-                hide_index=True
+                hide_index=True,
+                height=400
             )
         else:
-            st.info("📭 Tidak ada data mahasiswa yang ditemukan.")
+            st.info("📭 Belum ada data mahasiswa yang terdaftar.")
     
     conn.close()
 
