@@ -48,7 +48,8 @@ def mahasiswa_dashboard(student_id):
 
     nama, divisi, universitas = mahasiswa
 
-    # --- STEP 1: Judul Modul per Divisi ---
+    # --- STEP 1: Kamus Modul Sesuai Divisi ---
+    # Nama divisi harus sesuai dengan database: "Web Development"
     kamus_modul = {
         "Data Science": {
             1: "Introduction to Data Science", 2: "Python for Data Analysis",
@@ -57,7 +58,7 @@ def mahasiswa_dashboard(student_id):
             7: "Unsupervised Learning", 8: "Deep Learning Intro",
             9: "Big Data Fundamentals", 10: "Model Deployment & MLOps"
         },
-        "Web Development": {  # Sesuai dengan database
+        "Web Development": { 
             1: "HTML & CSS Dasar", 2: "Javascript ES6",
             3: "Responsive Design", 4: "Git & Version Control",
             5: "React.js Framework", 6: "Node.js Backend",
@@ -83,14 +84,9 @@ def mahasiswa_dashboard(student_id):
         box-shadow: 0 10px 30px rgba(11, 60, 140, 0.35);
         margin-bottom: 30px;
     }
-    .welcome-container p { margin: 4px 0; }
-    .welcome-quote {
-        margin-top: 12px;
-        color: #E5E7EB;
-        font-style: italic;
-    }
+    /* Sembunyikan elemen saat cetak PDF */
     @media print {
-        .stButton, .stDownloadButton, [data-testid="stSidebar"] {
+        .stButton, .stDownloadButton, [data-testid="stSidebar"], [data-testid="stHeader"] {
             display: none !important;
         }
     }
@@ -102,9 +98,6 @@ def mahasiswa_dashboard(student_id):
         <h2>🎓 Selamat Datang, {nama}</h2>
         <p><b>Divisi:</b> {divisi}</p>
         <p><b>Universitas:</b> {universitas}</p>
-        <p class="welcome-quote">
-            "Belajar hari ini adalah investasi masa depan."
-        </p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -112,7 +105,7 @@ def mahasiswa_dashboard(student_id):
         SELECT module, score
         FROM module_scores
         WHERE student_id = %s
-        ORDER BY CAST(module AS UNSIGNED)
+        ORDER BY CAST(module AS UNSIGNED) ASC
     """, (student_id,))
     data_nilai = cur.fetchall()
     cur.close()
@@ -122,82 +115,41 @@ def mahasiswa_dashboard(student_id):
         st.warning("Nilai modul belum tersedia")
         return
 
-    # --- LOGIKA PENYUSUNAN TABEL ---
+    # --- PENYUSUNAN DATA ---
     df = pd.DataFrame(data_nilai, columns=["Modul", "Nilai"])
     df["Modul"] = df["Modul"].astype(int)
     
-    # Mapping keterangan berdasarkan divisi
+    # Menambahkan keterangan berdasarkan divisi
     judul_sesuai_divisi = kamus_modul.get(divisi, {})
     df["Keterangan"] = df["Modul"].map(judul_sesuai_divisi)
     df["Keterangan"] = df["Keterangan"].fillna("Materi Pelatihan Tambahan")
     
-    # Reorder kolom
+    # Mengurutkan kolom agar rapi
     df = df[["Modul", "Keterangan", "Nilai"]]
 
     # ======================
-    # RINGKASAN
+    # RINGKASAN & GRAFIK
     # ======================
     col1, col2, col3 = st.columns(3)
     col1.metric("📊 Rata-rata Nilai", f"{df['Nilai'].mean():.2f}")
     col2.metric("⬆️ Nilai Tertinggi", df["Nilai"].max())
     col3.metric("⬇️ Nilai Terendah", df["Nilai"].min())
 
-    # ======================
-    # GRAFIK
-    # ======================
     st.markdown("### 📈 Performa Nilai Modul")
     fig, ax = plt.subplots(figsize=(9, 3))
-    ax.plot(df["Modul"], df["Nilai"], marker="o", linewidth=2, color="#2563eb")
+    ax.plot(df["Modul"], df["Nilai"], marker="o", color="#2563eb")
     ax.set_ylim(0, 100)
-    ax.grid(True, linestyle="--", alpha=0.4)
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
     st.pyplot(fig)
 
     # ======================
-    # MODUL LEMAH
-    # ======================
-    modul_lemah = df[df["Nilai"] < 70]
-
-    # ======================
-    # STATUS AKADEMIK
-    # ======================
-    st.markdown("## 🎯 Status Akademik")
-
-    if modul_lemah.empty:
-        st.markdown("""
-        <div style="background:white; padding:20px; border-radius:10px; border-left:5px solid #16a34a; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <b>Status Akademik:</b> <span style="color:#16a34a;">Memenuhi Syarat</span><br><br>
-            Semua nilai modul kamu sudah berada di atas standar minimal (70).  
-            Kamu sudah berada di jalur yang baik, pertahankan konsistensi belajarmu.
-        </div>
-    """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div style="background:#FFF7ED; padding:20px; border-radius:10px; border-left:5px solid #EA580C; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <b>Status Akademik:</b> <span style="color:#EA580C;">Perlu Perbaikan</span><br><br>
-            Terdapat <b>{len(modul_lemah)} modul</b> dengan nilai di bawah standar (70).  
-            Nilai tersebut perlu diperbaiki agar proses akademik kamu dapat berlanjut dengan optimal.
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ======================
-    # REKOMENDASI SISTEM
-    # ======================
-    st.markdown("## 🧠 Rekomendasi Sistem")
-    if modul_lemah.empty:
-        st.info("✅ **Keputusan Sistem**: Kamu diperbolehkan melanjutkan ke **Project Akhir**.")
-    else:
-        st.warning("📌 **Keputusan Sistem**: Kamu belum disarankan ke Project Akhir. Perbaiki modul yang merah.")
-
-    # ======================
-    # TABEL & FITUR EKSPOR
+    # TABEL DETAIL & FITUR CETAK
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
+    # Menggunakan df yang sudah didefinisikan untuk menghindari NameError
     st.dataframe(df, use_container_width=True, hide_index=True)
     
-    col_dl1, col_dl2 = st.columns([1, 4])
-    with col_dl1:
+    col_btn1, col_btn2 = st.columns([1, 4])
+    with col_btn1:
         csv = df.to_csv(index=False).encode('utf-8')
         st.download_button(
             label="📥 Download CSV",
@@ -207,7 +159,7 @@ def mahasiswa_dashboard(student_id):
             type="primary"
         )
         
-    with col_dl2:
-        if st.button("🖨️ Cetak / Simpan PDF"):
-            st.info("💡 Gunakan **Ctrl + P** untuk menyimpan sebagai PDF.")
+    with col_btn2:
+        if st.button("🖨️ Cetak ke PDF"):
+            st.info("💡 Gunakan **Ctrl + P** untuk menyimpan halaman ini sebagai PDF.")
             st.components.v1.html("<script>window.print();</script>", height=0)
