@@ -55,7 +55,9 @@ section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0B3C8C, #1E40AF);
 }
 
-section[data-testid="stSidebar"] * {
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] span {
     color: #FFFFFF !important;
 }
 
@@ -209,6 +211,31 @@ a, a:hover, a:visited {
 .vega-embed, .vega-embed canvas {
     background-color: white !important;
 }
+
+/* ================= FORCE TEXT VISIBILITY (FIX UTAMA) ================= */
+
+/* Radio button text (horizontal & normal) */
+div[role="radiogroup"] label span {
+    color: #1F2937 !important;
+    opacity: 1 !important;
+}
+
+/* Selectbox selected value */
+div[data-baseweb="select"] span {
+    color: #1F2937 !important;
+    opacity: 1 !important;
+}
+
+/* Selectbox placeholder */
+div[data-baseweb="select"] div {
+    color: #1F2937 !important;
+}
+
+/* Caption & helper text */
+.stCaption, .stMarkdown, label {
+    color: #1F2937 !important;
+}
+
 
 </style>
 """, unsafe_allow_html=True)
@@ -436,6 +463,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
