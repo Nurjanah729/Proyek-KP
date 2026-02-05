@@ -51,40 +51,25 @@ def mahasiswa_dashboard(student_id):
     # Kita membuat daftar judul modul untuk tiap divisi
     kamus_modul = {
         "Data Science": {
-            1: "Introduction to Data Science",
-            2: "Python for Data Analysis",
-            3: "Exploratory Data Analysis",
-            4: "Statistics for DS",
-            5: "Machine Learning Basics",
-            6: "Supervised Learning",
-            7: "Unsupervised Learning",
-            8: "Deep Learning Intro",
-            9: "Big Data Fundamentals",
-            10: "Model Deployment & MLOps"
+            1: "Introduction to Data Science", 2: "Python for Data Analysis",
+            3: "Exploratory Data Analysis", 4: "Statistics for DS",
+            5: "Machine Learning Basics", 6: "Supervised Learning",
+            7: "Unsupervised Learning", 8: "Deep Learning Intro",
+            9: "Big Data Fundamentals", 10: "Model Deployment & MLOps"
         },
-        "Web Developer": {
-            1: "HTML & CSS Dasar",
-            2: "Javascript ES6",
-            3: "Responsive Design",
-            4: "Git & Version Control",
-            5: "React.js Framework",
-            6: "Node.js Backend",
-            7: "Database SQL",
-            8: "REST API",
-            9: "Web Security",
-            10: "Cloud Hosting & Testing"
+        "Web Development": {  # <--- Diubah dari "Web Developer" agar sinkron dengan DB
+            1: "HTML & CSS Dasar", 2: "Javascript ES6",
+            3: "Responsive Design", 4: "Git & Version Control",
+            5: "React.js Framework", 6: "Node.js Backend",
+            7: "Database SQL", 8: "REST API",
+            9: "Web Security", 10: "Cloud Hosting & Testing"
         },
         "AI Engineer": {
-            1: "Linear Algebra for AI",
-            2: "Advanced Python AI",
-            3: "Search Algorithms",
-            4: "Neural Networks",
-            5: "Computer Vision",
-            6: "Natural Language Processing",
-            7: "Reinforcement Learning",
-            8: "AI Model Deployment",
-            9: "Generative AI Intro",
-            10: "AI Ethics & Governance"
+            1: "Linear Algebra for AI", 2: "Advanced Python AI",
+            3: "Search Algorithms", 4: "Neural Networks",
+            5: "Computer Vision", 6: "Natural Language Processing",
+            7: "Reinforcement Learning", 8: "AI Model Deployment",
+            9: "Generative AI Intro", 10: "AI Ethics & Governance"
         }
     }
 
@@ -230,13 +215,28 @@ def mahasiswa_dashboard(student_id):
     # TABEL (PUTIH)
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
-    st.dataframe(df, use_container_width=True, hide_index=True)
-
-
-
-
-
-
-
-
-
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
+    
+        # Fitur Download dan Cetak
+        col_dl1, col_dl2 = st.columns([1, 4])
+        
+        with col_dl1:
+            # Konversi ke CSV
+            csv = df_display.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv,
+                file_name=f'Nilai_{nama.replace(" ", "_")}.csv',
+                mime='text/csv',
+                type="primary"
+            )
+        
+        with col_dl2:
+            if st.button("🖨️ Cetak / Simpan PDF"):
+                st.info("💡 Tips: Gunakan **Ctrl + P** (Windows) atau **Cmd + P** (Mac) untuk menyimpan halaman ini sebagai PDF.")
+                # Trigger print otomatis di browser
+                st.components.v1.html("<script>window.print();</script>", height=0)
+    
+    
+    
+    
