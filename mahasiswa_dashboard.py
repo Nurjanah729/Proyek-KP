@@ -3,8 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from db import get_db
 from pengaturan import pengaturan_page
+from db import get_latest_prediction
+
 
 def mahasiswa_dashboard(student_id):
+    prediction = get_latest_prediction(student_id)
+
 
     # ======================
     # SIDEBAR
@@ -156,22 +160,38 @@ def mahasiswa_dashboard(student_id):
     # ======================
     # STATUS AKADEMIK
     # ======================
-    st.markdown("## 🎯 Status Akademik")
+    st.markdown("## 🎓 Status Akademik")
 
-    if modul_lemah.empty:
-        st.markdown("""
-        <div class="mhs-card">
-            <b>Status Akademik:</b> <span style="color:#16a34a;">Memenuhi Syarat</span><br><br>
-            Semua nilai modul kamu sudah berada di atas standar minimal (70).
-        </div>
-        """, unsafe_allow_html=True)
-    else:
+    if prediction:
+        status = prediction["result"]
+    
+        if status == "Excellent":
+            color = "#16a34a"
+            emoji = "🏆"
+            desc = "Performa akademik sangat baik"
+        else:
+            color = "#f59e0b"
+            emoji = "👍"
+            desc = "Performa akademik baik"
+    
         st.markdown(f"""
-        <div class="mhs-card" style="background:#FFF7ED;">
-            <b>Status Akademik:</b> <span style="color:#EA580C;">Perlu Perbaikan</span><br><br>
-            Terdapat <b>{len(modul_lemah)} modul</b> dengan nilai di bawah standar (70).
+        <div style="
+            background-color:{color};
+            padding:22px;
+            border-radius:16px;
+            color:white;
+            text-align:center;
+            box-shadow:0 12px 30px rgba(0,0,0,0.25);
+            margin-top:10px;
+        ">
+            <h2 style="margin:0;">{emoji} {status}</h2>
+            <p style="margin-top:8px;">{desc}</p>
         </div>
         """, unsafe_allow_html=True)
+    
+    else:
+        st.warning("⚠️ Status akademik belum dianalisis oleh admin.")
+    
 
     # ======================
     # REKOMENDASI SISTEM
@@ -215,3 +235,4 @@ def mahasiswa_dashboard(student_id):
         if st.button("🖨️ Cetak / Simpan PDF"):
             st.info("Gunakan **Ctrl + P** / **Cmd + P** untuk simpan sebagai PDF.")
             st.components.v1.html("<script>window.print();</script>", height=0)
+
