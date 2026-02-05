@@ -47,9 +47,6 @@ def mahasiswa_dashboard(student_id):
 
     nama, divisi, universitas = mahasiswa
 
-    # ======================
-    # KAMUS MODUL
-    # ======================
     kamus_modul = {
         "Data Science": {
             1: "Introduction to Data Science", 2: "Python for Data Analysis",
@@ -84,12 +81,13 @@ def mahasiswa_dashboard(student_id):
         box-shadow: 0 10px 30px rgba(11, 60, 140, 0.35);
         margin-bottom: 30px;
     }
+    .welcome-container p { margin: 4px 0; }
     .welcome-quote {
         margin-top: 12px;
         color: #E5E7EB;
         font-style: italic;
     }
-    .mhs-card { /* 🔧 FIX */
+    .mhs-card {
         background: white;
         padding: 20px;
         border-radius: 14px;
@@ -118,8 +116,8 @@ def mahasiswa_dashboard(student_id):
     """, (student_id,))
     data_nilai = cur.fetchall()
 
-    cur.close()          # 🔧 FIX
-    conn.close()         # 🔧 FIX
+    cur.close()
+    conn.close()
 
     if not data_nilai:
         st.warning("Nilai modul belum tersedia")
@@ -133,7 +131,7 @@ def mahasiswa_dashboard(student_id):
     df["Keterangan"] = df["Keterangan"].fillna("Materi Pelatihan Tambahan")
     df = df[["Modul", "Keterangan", "Nilai"]]
 
-    df_display = df.copy()   # 🔧 FIX (INI YANG PALING PENTING)
+    df_display = df.copy()  # FIX PENTING
 
     # ======================
     # RINGKASAN
@@ -153,11 +151,11 @@ def mahasiswa_dashboard(student_id):
     ax.grid(True, linestyle="--", alpha=0.4)
     st.pyplot(fig)
 
+    modul_lemah = df[df["Nilai"] < 70]
+
     # ======================
     # STATUS AKADEMIK
     # ======================
-    modul_lemah = df[df["Nilai"] < 70]
-
     st.markdown("## 🎯 Status Akademik")
 
     if modul_lemah.empty:
@@ -176,16 +174,44 @@ def mahasiswa_dashboard(student_id):
         """, unsafe_allow_html=True)
 
     # ======================
-    # TABEL
+    # REKOMENDASI SISTEM
+    # ======================
+    st.markdown("## 🧠 Rekomendasi Sistem")
+
+    if modul_lemah.empty:
+        st.info(
+            "✅ **Keputusan Sistem**\n\n"
+            "Seluruh nilai modul kamu sudah memenuhi standar.\n\n"
+            "Kamu **sudah diperbolehkan melanjutkan ke Project Akhir**."
+        )
+    else:
+        st.info(
+            "📌 **Keputusan Sistem**\n\n"
+            "Kamu **belum disarankan** melanjutkan ke **Project Akhir**.\n\n"
+            "**Modul yang perlu diperbaiki:**"
+        )
+        for _, row in modul_lemah.iterrows():
+            st.markdown(f"- **Modul {row['Modul']}** (Nilai {row['Nilai']})")
+
+    # ======================
+    # TABEL + EXPORT
     # ======================
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df_display, use_container_width=True, hide_index=True)
 
-    csv = df_display.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        "📥 Download CSV",
-        csv,
-        f"Nilai_{nama.replace(' ', '_')}.csv",
-        "text/csv",
-        type="primary"
-    )
+    col1, col2 = st.columns([1, 4])
+
+    with col1:
+        csv = df_display.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "📥 Download CSV",
+            csv,
+            f"Nilai_{nama.replace(' ', '_')}.csv",
+            "text/csv",
+            type="primary"
+        )
+
+    with col2:
+        if st.button("🖨️ Cetak / Simpan PDF"):
+            st.info("Gunakan **Ctrl + P** / **Cmd + P** untuk simpan sebagai PDF.")
+            st.components.v1.html("<script>window.print();</script>", height=0)
