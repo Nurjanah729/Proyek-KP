@@ -62,7 +62,6 @@ def analisis_ml_dan_simpan(student_id):
     conn.commit()
     cur.close()
     conn.close()
-    analisis_ml_dan_simpan(s_id)
 
 
 
@@ -92,7 +91,7 @@ def input_nilai_page():
             st.write("### Preview Data")
             st.dataframe(df.head())
 
-            if st.button("Simpan & Analisis ML"):
+            if st.button("Simpan Nilai"):
                 conn = get_db()
                 cur = conn.cursor()
 
@@ -124,7 +123,7 @@ def input_nilai_page():
                 for sid in student_ids:
                     analisis_ml_dan_simpan(sid)
 
-                st.success(f"✅ {success} data disimpan & dianalisis ML")
+                st.success(f"✅ {success} data disimpan ")
                 st.balloons()
 
         except Exception as e:
@@ -135,4 +134,5 @@ def input_nilai_page():
 # ==========================================
 if __name__ == "__main__":
     input_nilai_page()
+
 
