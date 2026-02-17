@@ -104,12 +104,11 @@ def analisis_nilai_page():
         # TAMPILKAN HASIL
         # ======================
         st.success(f"✅ Hasil Analisis ML: **{hasil}**")
-        st.write(f"📊 Confidence Model: {confidence}")
         st.write(f"📈 Rata-rata Nilai: {avg_score}")
 
         if weak_modules:
             st.warning(f"⚠ Modul lemah: {', '.join(map(str, weak_modules))}")
         else:
-            st.info("🎉 Tidak ada modul lemah")
+            st.info(" Tidak ada modul lemah")
 
     conn.close()
