@@ -30,9 +30,10 @@ def analisis_nilai_page():
         return
 
     student_map = {
-        f"{s[1]} | {s[2]} | {s[3]}": s[0]
-        for s in students
+    f"ID: {s[0]} | {s[1]} | {s[2]} | {s[3]}": s[0]
+    for s in students
     }
+
 
     selected_student = st.selectbox(
         "Pilih Mahasiswa",
@@ -40,6 +41,8 @@ def analisis_nilai_page():
     )
 
     student_id = student_map[selected_student]
+    st.info(f"Student ID: {student_id}")
+
 
     # ======================
     # AMBIL NILAI MODUL
