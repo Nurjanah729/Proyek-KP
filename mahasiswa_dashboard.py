@@ -219,20 +219,18 @@ def mahasiswa_dashboard(student_id):
     st.markdown("### 📋 Detail Nilai Modul")
     st.dataframe(df_display, use_container_width=True, hide_index=True)
 
-    col1, col2 = st.columns([1, 4])
+    col1 = st.columns(1)[0]
+
 
     with col1:
         csv = df_display.to_csv(index=False).encode("utf-8")
         st.download_button(
-            "📥 Download CSV",
+            "📥 Download Nilai",
             csv,
             f"Nilai_{nama.replace(' ', '_')}.csv",
             "text/csv",
             type="primary"
         )
 
-    with col2:
-        if st.button("🖨️ Cetak / Simpan PDF"):
-            st.info("Gunakan **Ctrl + P** / **Cmd + P** untuk simpan sebagai PDF.")
-            st.components.v1.html("<script>window.print();</script>", height=0)
+    
 
