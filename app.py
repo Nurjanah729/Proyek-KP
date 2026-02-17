@@ -417,7 +417,7 @@ def admin_dashboard():
         st.markdown("## ⚙️ Admin Panel")
         menu = st.radio(
             "Navigasi",
-            ["📊 Dashboard", "👨‍🎓 Input Mahasiswa", "📝 Input Nilai", "🧠Analisis Nilai", "🤖 Evaluasi Akademik"]
+            ["📊 Dashboard", "👨‍🎓 Input Mahasiswa", "📝 Import Nilai Mahasiswa", "🧠Analisis Nilai Mahasiswa", "🤖 Evaluasi Akademik"]
         )
         st.markdown("---")
         if st.button("🔓 Logout"):
@@ -445,9 +445,9 @@ def admin_dashboard():
         dashboard_page()
     elif menu == "👨‍🎓 Input Mahasiswa":
         mahasiswa_page()
-    elif menu == "📝 Input Nilai":
+    elif menu == "📝 Import Nilai Mahasiswa":
         input_nilai_page()
-    elif menu == "🧠Analisis Nilai":
+    elif menu == "🧠Analisis Nilai Mahasiswa":
         analisis_nilai_page()
     elif menu == "🤖 Evaluasi Akademik":
         evaluasi_akademik_page()
@@ -468,6 +468,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
