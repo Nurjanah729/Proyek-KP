@@ -200,12 +200,12 @@ def mahasiswa_dashboard(student_id):
 
     if modul_lemah.empty:
         st.info(
-            "Seluruh nilai modul kamu sudah memenuhi standar.\n\n"
-            "Kamu **sudah diperbolehkan melanjutkan ke Project Akhir**."
+            "Seluruh nilai modul memenuhi standar.\n\n"
+            " **sudah diperbolehkan melanjutkan ke Project Akhir**."
         )
     else:
         st.info(
-            "Kamu **belum disarankan** melanjutkan ke **Project Akhir**.\n\n"
+            " **belum disarankan** melanjutkan ke **Project Akhir**.\n\n"
             "**Modul yang perlu diperbaiki:**"
         )
         for _, row in modul_lemah.iterrows():
@@ -231,5 +231,6 @@ def mahasiswa_dashboard(student_id):
         )
 
     
+
 
 
