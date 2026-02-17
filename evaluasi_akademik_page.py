@@ -52,7 +52,7 @@ def evaluasi_akademik_page():
     col1.metric("Data Mahasiswa Terproses", f"{len(df_final)} Orang")
     
     # 2. Kesiapan Proyek Akhir
-    siap = len(df_final[df_final["Hasil Analisis"].isin(["Excellent", "Good"])])
+    siap = len(df_final[df_final["Hasil Analisis"] == "Excellent"])
     persen_siap = int((siap/len(df_final))*100) if len(df_final) > 0 else 0
     col2.metric("Kesiapan Proyek Akhir", f"{persen_siap}%")
 
@@ -100,4 +100,5 @@ def evaluasi_akademik_page():
         st.plotly_chart(fig, use_container_width=True)
 
     conn.close()
+
 
