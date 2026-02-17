@@ -124,7 +124,6 @@ def input_nilai_page():
                     analisis_ml_dan_simpan(sid)
 
                 st.success(f"✅ {success} data disimpan ")
-                st.balloons()
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
@@ -134,5 +133,6 @@ def input_nilai_page():
 # ==========================================
 if __name__ == "__main__":
     input_nilai_page()
+
 
 
