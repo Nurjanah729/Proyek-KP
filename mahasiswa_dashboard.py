@@ -200,13 +200,11 @@ def mahasiswa_dashboard(student_id):
 
     if modul_lemah.empty:
         st.info(
-            "✅ **Keputusan Sistem**\n\n"
             "Seluruh nilai modul kamu sudah memenuhi standar.\n\n"
             "Kamu **sudah diperbolehkan melanjutkan ke Project Akhir**."
         )
     else:
         st.info(
-            "📌 **Keputusan Sistem**\n\n"
             "Kamu **belum disarankan** melanjutkan ke **Project Akhir**.\n\n"
             "**Modul yang perlu diperbaiki:**"
         )
@@ -233,4 +231,5 @@ def mahasiswa_dashboard(student_id):
         )
 
     
+
 
