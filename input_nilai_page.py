@@ -70,7 +70,6 @@ def analisis_ml_dan_simpan(student_id):
 # ==========================================
 def input_nilai_page():
     st.title("📥 Import Nilai Mahasiswa")
-    st.write("Unggah CSV/XLSX → nilai langsung dianalisis ML")
     st.divider()
 
     uploaded_file = st.file_uploader(
@@ -133,6 +132,7 @@ def input_nilai_page():
 # ==========================================
 if __name__ == "__main__":
     input_nilai_page()
+
 
 
 
